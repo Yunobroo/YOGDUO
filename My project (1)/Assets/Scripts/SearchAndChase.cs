@@ -20,7 +20,7 @@ public class SearchAndChase : MonoBehaviour
     public string patrolPointTag;
     public Transform[] patrolPoints;
     public string Status => state.ToString();
-    enum State { Patrolling, Chasing, LastKnownLocation }
+    enum State { Patrolling, Chasing, LastKnownLocation, Lingering }
     State state;
     Vector3 currentDestination;
     int patrolIndex;
@@ -71,8 +71,8 @@ public class SearchAndChase : MonoBehaviour
             else if (state == State.LastKnownLocation)
             {
                 transform.Rotate(0, 75 * Time.deltaTime, 0);
-                searchTime -= Time.deltaTime;
-                if (searchTime <= 0) { state = State.Patrolling; SelectPatrolPoint(); }
+                StartCoroutine(Linger());
+                state = State.Lingering; 
             }
         }
         if (player != null && !player.Hidden && Vector3.Distance(transform.position, target.transform.position) < .85f &&
@@ -101,5 +101,60 @@ public class SearchAndChase : MonoBehaviour
         if (patrolPoints == null || patrolPoints.Length == 0) { currentDestination = transform.position; return; }
         currentDestination = patrolPoints[patrolIndex].position;
         patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
+    }
+
+    IEnumerator Linger()
+    {
+        Debug.Log("Start Lingering");
+
+        //rotate 90 degrees
+        yield return StartCoroutine(SmoothTurn(90f, 90f));
+        Debug.Log("Turn");
+
+        //Wait 4 seconds
+        yield return new WaitForSeconds(3f);
+
+        //rotate 40 degrees
+        yield return StartCoroutine(SmoothTurn(-40f, 60f));
+        Debug.Log("Turn");
+
+        //Wait 2 seconds
+        yield return new WaitForSeconds(2f); 
+
+        yield return StartCoroutine(SmoothTurn(100f, 100f));
+        Debug.Log("Turn");
+
+        yield return new WaitForSeconds(2f);
+
+        //rotate 20 degrees
+        yield return StartCoroutine(SmoothTurn(20f, 45f));
+        Debug.Log("Turn");
+
+        yield return new WaitForSeconds(1f);
+
+        searchTime -= Time.deltaTime;
+        state = State.Patrolling;
+        SelectPatrolPoint();
+
+        Debug.Log("Stop Lingering");
+    }
+
+    IEnumerator SmoothTurn(float angle, float speed)
+    {
+        Quaternion targetRotation =
+            transform.rotation * Quaternion.Euler(0f, angle, 0f);
+
+        while (Quaternion.Angle(transform.rotation, targetRotation) > 0.1f)
+        {
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRotation,
+                speed * Time.deltaTime
+            );
+
+            yield return null;
+        }
+
+        transform.rotation = targetRotation;
     }
 }
