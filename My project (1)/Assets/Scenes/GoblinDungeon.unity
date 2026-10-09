@@ -171,6 +171,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Gem
       objectReference: {fileID: 0}
+    - target: {fileID: 7321299516253902921, guid: 7264fb2def9477a47a29e25d6e50b18e, type: 3}
+      propertyPath: wallMask.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -595,6 +599,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4664273786832544299, guid: a365571df0521964ea52c21c2de4cd50, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5543344734788367118, guid: a365571df0521964ea52c21c2de4cd50, type: 3}
+      propertyPath: wallMask.m_Bits
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8757322020416181847, guid: a365571df0521964ea52c21c2de4cd50, type: 3}
@@ -1418,6 +1426,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1851929711}
     m_Modifications:
+    - target: {fileID: 6392076074745037641, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
+      propertyPath: wallMask.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7387221458015131667, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
       propertyPath: m_LocalPosition.x
       value: -9
@@ -1539,6 +1551,10 @@ PrefabInstance:
       propertyPath: target
       value: 
       objectReference: {fileID: 812500818}
+    - target: {fileID: 8819977090210151422, guid: c81a828562bad5049ae921afa46e773b, type: 3}
+      propertyPath: visionBlockMask.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8819977090210151422, guid: c81a828562bad5049ae921afa46e773b, type: 3}
       propertyPath: patrolPoints.Array.size
       value: 4
@@ -1770,7 +1786,7 @@ GameObject:
   - component: {fileID: 1117610090}
   - component: {fileID: 1117610091}
   m_Layer: 0
-  m_Name: Dungeon geometry
+  m_Name: Dungeon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2114,7 +2130,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 844633865278039395, guid: e3f0366209778e440884aeb82e4bda0d, type: 3}
       propertyPath: m_LocalScale.y
-      value: 2
+      value: 0.76066
       objectReference: {fileID: 0}
     - target: {fileID: 844633865278039395, guid: e3f0366209778e440884aeb82e4bda0d, type: 3}
       propertyPath: m_LocalScale.z
@@ -2126,7 +2142,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 844633865278039395, guid: e3f0366209778e440884aeb82e4bda0d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1
+      value: 0.36
       objectReference: {fileID: 0}
     - target: {fileID: 844633865278039395, guid: e3f0366209778e440884aeb82e4bda0d, type: 3}
       propertyPath: m_LocalPosition.z
@@ -2870,6 +2886,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1851929711}
     m_Modifications:
+    - target: {fileID: 6392076074745037641, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
+      propertyPath: wallMask.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7387221458015131667, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7
@@ -3063,6 +3083,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1851929711}
     m_Modifications:
+    - target: {fileID: 6392076074745037641, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
+      propertyPath: wallMask.m_Bits
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 7387221458015131667, guid: dfc583fadd2328c4a9351eb017d4f544, type: 3}
       propertyPath: m_LocalPosition.x
       value: -5
@@ -3206,9 +3230,70 @@ MonoBehaviour:
   guards:
   - {fileID: 1351088616}
   - {fileID: 1027908372}
+  - {fileID: 1027908372}
+  - {fileID: 1027908372}
+  - {fileID: 1027908372}
+  - {fileID: 1027908372}
   hidingSpots:
   - {fileID: 797127839}
   - {fileID: 1086566494}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
+  - {fileID: 1662165301}
   - {fileID: 1662165301}
   collectibles:
   - {fileID: 875211280}
@@ -3226,6 +3311,55 @@ MonoBehaviour:
   - {fileID: 290625872}
   - {fileID: 1034756740}
   - {fileID: 51250474}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
+  - {fileID: 510911490}
   - {fileID: 510911490}
 --- !u!4 &2047289934
 Transform:
