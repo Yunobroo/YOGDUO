@@ -17,7 +17,7 @@ public class Player : MonoBehaviour
     CharacterController controller;
     Transform body;
     Transform movementCamera;
-    bool crouchToggled, exhausted;
+    bool crouchToggled, sprintToggled, exhausted;
     float stepDistance;
 
     void Start()
@@ -31,14 +31,27 @@ public class Player : MonoBehaviour
     {
         var game = GoblinDungeon.Instance;
         var keys = Keyboard.current;
-        if (keys == null || game == null || !game.Playing) { NoiseRadius = 0; return; }
-        Vector2 input = new Vector2(
-            (keys.dKey.isPressed || keys.rightArrowKey.isPressed ? 1 : 0) - (keys.aKey.isPressed || keys.leftArrowKey.isPressed ? 1 : 0),
-            (keys.wKey.isPressed || keys.upArrowKey.isPressed ? 1 : 0) - (keys.sKey.isPressed || keys.downArrowKey.isPressed ? 1 : 0));
-        input = Vector2.ClampMagnitude(input, 1);
-        if (keys.cKey.wasPressedThisFrame) crouchToggled = !crouchToggled;
-        Sneaking = crouchToggled || keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed;
-        bool sprintHeld = keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed;
+        var pad = Gamepad.current;
+        if (game == null || !game.Playing) { NoiseRadius = 0; sprintToggled = false; return; }
+        Vector2 input = Vector2.zero;
+        if (keys != null)
+            input = Vector2.ClampMagnitude(new Vector2(
+                (keys.dKey.isPressed || keys.rightArrowKey.isPressed ? 1 : 0) - (keys.aKey.isPressed || keys.leftArrowKey.isPressed ? 1 : 0),
+                (keys.wKey.isPressed || keys.upArrowKey.isPressed ? 1 : 0) - (keys.sKey.isPressed || keys.downArrowKey.isPressed ? 1 : 0)), 1);
+        if (pad != null)
+        {
+            // ReadValue applies the Input System's stick deadzone and preserves analog speed.
+            Vector2 stick = pad.leftStick.ReadValue();
+            if (stick.sqrMagnitude > input.sqrMagnitude) input = stick;
+            if (pad.leftStickButton.wasPressedThisFrame) sprintToggled = !sprintToggled;
+        }
+        else sprintToggled = false;
+        if ((keys != null && keys.cKey.wasPressedThisFrame) || (pad != null && pad.rightStickButton.wasPressedThisFrame))
+            crouchToggled = !crouchToggled;
+        Sneaking = crouchToggled || (keys != null && (keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed));
+        // Click L3 once to run; stopping or crouching cancels controller sprint.
+        if (input.sqrMagnitude == 0 || Sneaking) sprintToggled = false;
+        bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
         bool running = sprintHeld && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
         Stamina = Mathf.Clamp01(Stamina + (running ? -.27f : .2f) * Time.deltaTime);

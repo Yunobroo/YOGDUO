@@ -1,43 +1,132 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 public class GoblinHUD : MonoBehaviour
 {
     public GoblinDungeon game;
+    GUIStyle text, hint, right, center, title, button;
+    int styledHeight;
+
+    void Styles()
+    {
+        if (text != null && styledHeight == Screen.height) return;
+        styledHeight = Screen.height;
+        float fontScale = Mathf.Clamp(Screen.height / 900f, 1f, 1.25f);
+        text = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(16 * fontScale) };
+        text.normal.textColor = Color.white;
+        hint = new GUIStyle(text) { fontSize = Mathf.RoundToInt(13 * fontScale), wordWrap = true };
+        hint.normal.textColor = new Color(.78f, .8f, .8f);
+        right = new GUIStyle(hint) { alignment = TextAnchor.UpperRight };
+        center = new GUIStyle(text) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
+        title = new GUIStyle(text) { fontSize = Mathf.RoundToInt(18 * fontScale), fontStyle = FontStyle.Bold };
+        button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(14 * fontScale), wordWrap = true };
+    }
+
+    static void Fill(Rect rect, Color color)
+    {
+        Color old = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = old;
+    }
+
+    static void Panel(Rect rect)
+    {
+        Fill(new Rect(rect.x + 2, rect.y + 3, rect.width, rect.height), new Color(0, 0, 0, .2f));
+        Fill(rect, new Color(.10f, .11f, .12f, .92f));
+        Fill(new Rect(rect.x, rect.y, rect.width, 1), new Color(.35f, .37f, .36f, .55f));
+    }
 
     void OnGUI()
     {
         if (game == null) return;
-        Matrix4x4 previousMatrix = GUI.matrix;
-        float scale = Mathf.Max(.5f, Mathf.Min(Screen.width / 1100f, Screen.height / 720f));
-        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
-        GUI.Box(new Rect(15, 15, 475, 157), "GOBLIN'S POCKET");
-        string danger = "Quiet";
-        foreach (var guard in game.guards) if (guard != null && guard.Status == "LastKnownLocation") danger = "Guards investigating";
-        foreach (var guard in game.guards) if (guard != null && guard.CanSeeTarget) danger = "SPOTTED - RUN!";
-        var player = game.player;
-        if (player != null && player.Hidden) danger = "Hidden";
-        GUI.Label(new Rect(28, 43, 455, 24), "Coins " + game.Coins + "/" + game.TotalCoins + "    Gems " + game.Gems + "/" + game.TotalGems + "    Purse " + game.Bank + "    " + danger);
-        GUI.Label(new Rect(28, 67, 455, 24), "WASD: screen directions   Ctrl: sneak   C: toggle   Shift: sprint");
-        GUI.Label(new Rect(28, 91, 455, 24), "Crouch on green patches to hide. Gold crown finishes the run.");
-        GUI.Label(new Rect(28, 115, 455, 24), "R: restart    Stamina " + (player == null ? 100 : Mathf.RoundToInt(player.Stamina * 100)) + "%");
-        GUI.Label(new Rect(28, 139, 455, 24), "Footstep noise: " + (player == null || player.NoiseRadius == 0 ? "Silent" : player.NoiseRadius.ToString("0.0") + "m range (walls halve range)"));
-        if (!game.Playing)
+        Styles();
+        Matrix4x4 oldMatrix = GUI.matrix;
+        Color oldColor = GUI.color;
+        bool oldEnabled = GUI.enabled;
+        Rect safe = Screen.safeArea;
+        if (safe.width <= 0 || safe.height <= 0) safe = new Rect(0, 0, Screen.width, Screen.height);
+        // Anchor each panel to a safe-area corner at native pixel size.
+        GUI.matrix = Matrix4x4.Translate(new Vector3(safe.x, Screen.height - safe.yMax, 0));
+        GUI.color = Color.white;
+        try
         {
-            float x = (Screen.width / scale - 390) * .5f;
-            float y = (Screen.height / scale - 275) * .5f;
-            GUI.Box(new Rect(x, y, 390, 275), game.Shopping ? "THE FENCE'S SHOP" : game.CaughtPlayer ? "CAUGHT" : "CROWN STOLEN!");
-            GUI.Label(new Rect(x + 25, y + 38, 350, 45), game.Shopping ? "Purse: " + game.Bank + " coins. Upgrades last this play session." : game.CaughtPlayer ? "Too slow, little goblin. Your unbanked loot was lost." : "Banked " + (game.Coins + game.Gems * 3) + " coins. Gems are worth 3 each.");
-            if (game.Shopping)
+            float w = safe.width, h = safe.height;
+            float margin = w < 600 ? 8 : 16;
+            float side = Mathf.Min(Screen.height > 1000 ? 320 : 280, (w - margin * 3) * .5f);
+            float controlsX = w - margin - side;
+            var player = game.player;
+            Panel(new Rect(margin, margin, side, 100));
+            float half = (side - 24) * .5f;
+            GUI.Label(new Rect(margin + 12, margin + 8, half, 22), "COINS", hint);
+            GUI.Label(new Rect(margin + 12 + half, margin + 8, half, 22), "GEMS", hint);
+            GUI.Label(new Rect(margin + 12, margin + 31, half, 26), game.Coins + " / " + game.TotalCoins, title);
+            GUI.Label(new Rect(margin + 12 + half, margin + 31, half, 26), game.Gems + " / " + game.TotalGems, title);
+            Fill(new Rect(margin + 12, margin + 63, side - 24, 1), new Color(.3f, .32f, .32f, .6f));
+            GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Purse: " + game.Bank + " coins", hint);
+
+            Panel(new Rect(controlsX, margin, side, 100));
+            bool pad = UnityEngine.InputSystem.Gamepad.current != null;
+            GUI.Label(new Rect(controlsX + 12, margin + 8, side - 24, 22), "CONTROLS", hint);
+            GUI.Label(new Rect(controlsX + 12, margin + 33, side - 24, 62), pad
+                ? "Left stick    Move\nL3    Sprint   /   R3    Crouch"
+                : "WASD    Move   /   Space    Sprint\nCtrl / C    Sneak   /   R    Restart", hint);
+
+            float bottom = h - margin - 82;
+            float meterWidth = side;
+            float meterX = margin;
+            float stamina = player == null ? 1 : player.Stamina;
+            Panel(new Rect(meterX, bottom, meterWidth, 82));
+            GUI.Label(new Rect(meterX + 12, bottom + 8, meterWidth - 24, 22), "Stamina", hint);
+            GUI.Label(new Rect(meterX + 12, bottom + 8, meterWidth - 24, 22), Mathf.RoundToInt(stamina * 100) + "%", right);
+            Fill(new Rect(meterX + 12, bottom + 35, meterWidth - 24, 7), new Color(.22f, .24f, .24f));
+            Fill(new Rect(meterX + 12, bottom + 35, (meterWidth - 24) * Mathf.Clamp01(stamina), 7), stamina < .3f ? new Color(.8f, .57f, .28f) : new Color(.55f, .75f, .4f));
+            float noise = player == null ? 0 : player.NoiseRadius;
+            GUI.Label(new Rect(meterX + 12, bottom + 51, meterWidth - 24, 23), "Rest to recover", hint);
+            Panel(new Rect(controlsX, bottom, side, 82));
+            GUI.Label(new Rect(controlsX + 12, bottom + 51, side - 74, 23), noise == 0 ? "Silent footsteps" : "Footsteps: " + noise.ToString("0.0") + "m", hint);
+            for (int i = 0; i < 4; i++)
+                Fill(new Rect(controlsX + side - 60 + i * 11, bottom + 57, 7, 8), noise > i * 1.75f ? new Color(.85f, .65f, .32f) : new Color(.25f, .27f, .27f));
+
+            string status = "";
+            foreach (var guard in game.guards)
+                if (guard != null && guard.Status == "LastKnownLocation") status = "Guards investigating";
+            foreach (var guard in game.guards)
+                if (guard != null && guard.CanSeeTarget) status = "SPOTTED - RUN!";
+            if (player != null && player.Hidden) status = "Hidden";
+            var statusRect = new Rect(controlsX + 12, bottom + 8, side - 24, 32);
+            Color statusColor = status == "SPOTTED - RUN!" ? new Color(1, .5f, .4f) : status == "Hidden" ? new Color(.65f, .85f, .5f) : Color.white;
+            GUI.color = statusColor;
+            GUI.Label(statusRect, status.Length > 0 ? status : game.Won ? "Crown stolen" : "Steal the crown", center);
+            GUI.color = Color.white;
+            if (!game.Playing)
             {
-                GUI.enabled = game.Bank >= 5 && game.Boots < 2;
-                if (GUI.Button(new Rect(x + 25, y + 90, 340, 35), "Quick boots - 5 coins (" + game.Boots + "/2)")) game.BuyBoots();
-                GUI.enabled = game.Bank >= 4 && !game.SoftShoes;
-                if (GUI.Button(new Rect(x + 25, y + 135, 340, 35), game.SoftShoes ? "Soft soles owned" : "Soft soles - quieter walking - 4 coins")) game.BuySoftShoes();
-                GUI.enabled = true;
+                GUI.matrix = Matrix4x4.Translate(new Vector3(safe.x, Screen.height - safe.yMax, 0));
+                EndScreen(safe.width, safe.height);
             }
-            else if (game.Won && GUI.Button(new Rect(x + 25, y + 105, 340, 40), "Spend loot in the shop")) game.OpenShop();
-            if (GUI.Button(new Rect(x + 25, y + 205, 340, 40), "Try another run")) game.Restart();
         }
-        GUI.matrix = previousMatrix;
+        finally { GUI.matrix = oldMatrix; GUI.color = oldColor; GUI.enabled = oldEnabled; }
+    }
+
+    void EndScreen(float width, float height)
+    {
+        Fill(new Rect(0, 0, width, height), new Color(0, 0, 0, .65f));
+        float panelWidth = Mathf.Min(390, width - 16);
+        float panelHeight = Mathf.Min(290, height - 16);
+        var panel = new Rect((width - panelWidth) * .5f, (height - panelHeight) * .5f, panelWidth, panelHeight);
+        Fill(panel, new Color(.09f, .1f, .11f, .98f));
+        float x = panel.x + 16, contentWidth = panel.width - 32;
+        GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.Shopping ? "The fence's shop" : game.CaughtPlayer ? "Caught" : "Crown stolen!", title);
+        GUI.Label(new Rect(x, panel.y + 44, contentWidth, 44), game.Shopping ? "Purse: " + game.Bank + " coins" : game.CaughtPlayer ? "Your unbanked loot was lost." : "Banked " + (game.Coins + game.Gems * 3) + " coins.", hint);
+        float rowHeight = Mathf.Min(42, (panel.height - 115) / 3);
+        if (game.Shopping)
+        {
+            GUI.enabled = game.Bank >= 5 && game.Boots < 2;
+            if (GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Quick boots - 5 coins (" + game.Boots + "/2)", button)) game.BuyBoots();
+            GUI.enabled = game.Bank >= 4 && !game.SoftShoes;
+            if (GUI.Button(new Rect(x, panel.y + 96 + rowHeight, contentWidth, rowHeight), game.SoftShoes ? "Soft soles owned" : "Soft soles - 4 coins", button)) game.BuySoftShoes();
+            GUI.enabled = true;
+        }
+        else if (game.Won && GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Spend loot in the shop", button)) game.OpenShop();
+        if (GUI.Button(new Rect(x, panel.yMax - rowHeight - 16, contentWidth, rowHeight), "Try another run", button)) game.Restart();
     }
 }
