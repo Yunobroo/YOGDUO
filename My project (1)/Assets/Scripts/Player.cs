@@ -30,9 +30,26 @@ public class Player : MonoBehaviour
     void Update()
     {
         var game = GoblinDungeon.Instance;
+        if (game == null || !game.Playing)
+        {
+            NoiseRadius = 0;
+            stepDistance = 0;
+            sprintToggled = false;
+            return;
+        }
+
+        Vector2 input = ReadMovementInput();
+        bool running = UpdateMovementMode(input, game.CarryingCrown);
+        Vector3 displacement = Move(input, running, game);
+        Hidden = Sneaking && game.InHidingSpot(transform.position);
+        UpdateFootsteps(displacement, running, game.SoftShoes);
+        if (body != null) body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);
+    }
+
+    Vector2 ReadMovementInput()
+    {
         var keys = Keyboard.current;
         var pad = Gamepad.current;
-        if (game == null || !game.Playing) { NoiseRadius = 0; sprintToggled = false; return; }
         Vector2 input = Vector2.zero;
         if (keys != null)
             input = Vector2.ClampMagnitude(new Vector2(
@@ -46,16 +63,28 @@ public class Player : MonoBehaviour
             if (pad.leftStickButton.wasPressedThisFrame) sprintToggled = !sprintToggled;
         }
         else sprintToggled = false;
+        return input;
+    }
+
+    bool UpdateMovementMode(Vector2 input, bool carryingCrown)
+    {
+        var keys = Keyboard.current;
+        var pad = Gamepad.current;
         if ((keys != null && keys.cKey.wasPressedThisFrame) || (pad != null && pad.rightStickButton.wasPressedThisFrame))
             crouchToggled = !crouchToggled;
         Sneaking = crouchToggled || (keys != null && (keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed));
         // Click L3 once to run; stopping or crouching cancels controller sprint.
-        if (input.sqrMagnitude == 0 || Sneaking) sprintToggled = false;
+        if (input.sqrMagnitude == 0 || Sneaking || carryingCrown) sprintToggled = false;
         bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
-        bool running = sprintHeld && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
+        bool running = sprintHeld && !carryingCrown && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
         Stamina = Mathf.Clamp01(Stamina + (running ? -.27f : .2f) * Time.deltaTime);
         if (Stamina <= 0) exhausted = true;
+        return running;
+    }
+
+    Vector3 Move(Vector2 input, bool running, GoblinDungeon game)
+    {
         // Project camera axes onto the floor: W moves up the screen, D moves right.
         Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
         Vector3 forward = movementCamera != null ? movementCamera.forward : Vector3.forward;
@@ -66,10 +95,14 @@ public class Player : MonoBehaviour
         Vector3 before = transform.position;
         controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
         if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
-        Hidden = Sneaking && game.InHidingSpot(transform.position);
         Vector3 displacement = transform.position - before;
         displacement.y = 0;
-        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : game.SoftShoes ? 1.5f : 3f;
+        return displacement;
+    }
+
+    void UpdateFootsteps(Vector3 displacement, bool running, bool softShoes)
+    {
+        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : softShoes ? 1.5f : 3f;
         if (NoiseRadius > 0)
         {
             stepDistance += displacement.magnitude;
@@ -82,6 +115,7 @@ public class Player : MonoBehaviour
             }
         }
         else stepDistance = 0;
-        if (body != null) body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);
+
     }
 }
+

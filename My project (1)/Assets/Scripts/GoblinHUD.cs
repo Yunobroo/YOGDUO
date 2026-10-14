@@ -81,7 +81,10 @@ public class GoblinHUD : MonoBehaviour
             Fill(new Rect(meterX + 12, bottom + 35, meterWidth - 24, 7), new Color(.22f, .24f, .24f));
             Fill(new Rect(meterX + 12, bottom + 35, (meterWidth - 24) * Mathf.Clamp01(stamina), 7), stamina < .3f ? new Color(.8f, .57f, .28f) : new Color(.55f, .75f, .4f));
             float noise = player == null ? 0 : player.NoiseRadius;
-            GUI.Label(new Rect(meterX + 12, bottom + 51, meterWidth - 24, 23), "Rest to recover", hint);
+            string protection = game.HitProtected ? "Hit! Crown dropped - get away!"
+                : game.CrownProtectionUsed ? "1 life left"
+                : game.CarryingCrown ? "2 lives - crown absorbs one hit" : "Rest to recover";
+            GUI.Label(new Rect(meterX + 12, bottom + 51, meterWidth - 24, 23), protection, hint);
             Panel(new Rect(controlsX, bottom, side, 82));
             GUI.Label(new Rect(controlsX + 12, bottom + 51, side - 74, 23), noise == 0 ? "Silent footsteps" : "Footsteps: " + noise.ToString("0.0") + "m", hint);
             for (int i = 0; i < 4; i++)
@@ -89,14 +92,15 @@ public class GoblinHUD : MonoBehaviour
 
             string status = "";
             foreach (var guard in game.guards)
-                if (guard != null && guard.Status == "LastKnownLocation") status = "Guards investigating";
+                if (guard != null && guard.Investigating) status = "Guards investigating";
             foreach (var guard in game.guards)
                 if (guard != null && guard.CanSeeTarget) status = "SPOTTED - RUN!";
             if (player != null && player.Hidden) status = "Hidden";
             var statusRect = new Rect(controlsX + 12, bottom + 8, side - 24, 32);
             Color statusColor = status == "SPOTTED - RUN!" ? new Color(1, .5f, .4f) : status == "Hidden" ? new Color(.65f, .85f, .5f) : Color.white;
             GUI.color = statusColor;
-            GUI.Label(statusRect, status.Length > 0 ? status : game.Won ? "Crown stolen" : "Steal the crown", center);
+            GUI.Label(statusRect, status.Length > 0 ? status : "Stay out of sight", center);
+            GUI.Label(new Rect(margin, margin + 110, w - margin * 2, 30), game.Objective, center);
             GUI.color = Color.white;
             if (!game.Playing)
             {
@@ -115,7 +119,7 @@ public class GoblinHUD : MonoBehaviour
         var panel = new Rect((width - panelWidth) * .5f, (height - panelHeight) * .5f, panelWidth, panelHeight);
         Fill(panel, new Color(.09f, .1f, .11f, .98f));
         float x = panel.x + 16, contentWidth = panel.width - 32;
-        GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.Shopping ? "The fence's shop" : game.CaughtPlayer ? "Caught" : "Crown stolen!", title);
+        GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.Shopping ? "The fence's shop" : game.CaughtPlayer ? "Caught" : "Escaped with the crown!", title);
         GUI.Label(new Rect(x, panel.y + 44, contentWidth, 44), game.Shopping ? "Purse: " + game.Bank + " coins" : game.CaughtPlayer ? "Your unbanked loot was lost." : "Banked " + (game.Coins + game.Gems * 3) + " coins.", hint);
         float rowHeight = Mathf.Min(42, (panel.height - 115) / 3);
         if (game.Shopping)
