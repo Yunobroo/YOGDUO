@@ -38,7 +38,7 @@ public class GoblinHUD : MonoBehaviour
 
     void OnGUI()
     {
-        if (game == null) return;
+        if (game == null || game.isHub) return;
         Styles();
         Matrix4x4 oldMatrix = GUI.matrix;
         Color oldColor = GUI.color;
@@ -82,8 +82,7 @@ public class GoblinHUD : MonoBehaviour
             Fill(new Rect(meterX + 12, bottom + 35, (meterWidth - 24) * Mathf.Clamp01(stamina), 7), stamina < .3f ? new Color(.8f, .57f, .28f) : new Color(.55f, .75f, .4f));
             float noise = player == null ? 0 : player.NoiseRadius;
             string protection = game.HitProtected ? "Hit! Crown dropped - get away!"
-                : game.CrownProtectionUsed ? "1 life left"
-                : game.CarryingCrown ? "2 lives - crown absorbs one hit" : "Rest to recover";
+                : game.CarryingCrown ? "2 lives - crown protection ready" : "1 life - steal the crown for protection";
             GUI.Label(new Rect(meterX + 12, bottom + 51, meterWidth - 24, 23), protection, hint);
             Panel(new Rect(controlsX, bottom, side, 82));
             GUI.Label(new Rect(controlsX + 12, bottom + 51, side - 74, 23), noise == 0 ? "Silent footsteps" : "Footsteps: " + noise.ToString("0.0") + "m", hint);
@@ -100,7 +99,8 @@ public class GoblinHUD : MonoBehaviour
             Color statusColor = status == "SPOTTED - RUN!" ? new Color(1, .5f, .4f) : status == "Hidden" ? new Color(.65f, .85f, .5f) : Color.white;
             GUI.color = statusColor;
             GUI.Label(statusRect, status.Length > 0 ? status : "Stay out of sight", center);
-            GUI.Label(new Rect(margin, margin + 110, w - margin * 2, 30), game.Objective, center);
+            GUI.color = Color.white;
+            GUI.Label(new Rect(margin, margin + 110, w - margin * 2, 30), "LEVEL " + game.levelNumber + " / " + game.levelTitle + "   -   " + game.Objective, center);
             GUI.color = Color.white;
             if (!game.Playing)
             {
@@ -119,18 +119,14 @@ public class GoblinHUD : MonoBehaviour
         var panel = new Rect((width - panelWidth) * .5f, (height - panelHeight) * .5f, panelWidth, panelHeight);
         Fill(panel, new Color(.09f, .1f, .11f, .98f));
         float x = panel.x + 16, contentWidth = panel.width - 32;
-        GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.Shopping ? "The fence's shop" : game.CaughtPlayer ? "Caught" : "Escaped with the crown!", title);
-        GUI.Label(new Rect(x, panel.y + 44, contentWidth, 44), game.Shopping ? "Purse: " + game.Bank + " coins" : game.CaughtPlayer ? "Your unbanked loot was lost." : "Banked " + (game.Coins + game.Gems * 3) + " coins.", hint);
+        GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.CaughtPlayer ? "Caught" : "Escaped with the crown!", title);
+        string result = game.CaughtPlayer ? "Your unbanked loot was lost. Upgrades and banked coins are safe."
+            : "Banked " + game.EscapeReward + " coins (including crown bounty). "
+                + (game.levelNumber == 1 ? "Level 2 unlocked!" : "Both crowns stolen! Replay either heist from the hub.");
+        GUI.Label(new Rect(x, panel.y + 44, contentWidth, 44), result, hint);
         float rowHeight = Mathf.Min(42, (panel.height - 115) / 3);
-        if (game.Shopping)
-        {
-            GUI.enabled = game.Bank >= 5 && game.Boots < 2;
-            if (GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Quick boots - 5 coins (" + game.Boots + "/2)", button)) game.BuyBoots();
-            GUI.enabled = game.Bank >= 4 && !game.SoftShoes;
-            if (GUI.Button(new Rect(x, panel.y + 96 + rowHeight, contentWidth, rowHeight), game.SoftShoes ? "Soft soles owned" : "Soft soles - 4 coins", button)) game.BuySoftShoes();
-            GUI.enabled = true;
-        }
-        else if (game.Won && GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Spend loot in the shop", button)) game.OpenShop();
+        if (GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Return to the shop hub", button)) game.OpenShop();
+        if (game.Won && game.levelNumber == 1 && GUI.Button(new Rect(x, panel.y + 96 + rowHeight, contentWidth, rowHeight), "Enter level 2 - The Royal Vault", button)) HeistProgress.EnterLevel(2);
         if (GUI.Button(new Rect(x, panel.yMax - rowHeight - 16, contentWidth, rowHeight), "Try another run", button)) game.Restart();
     }
 }

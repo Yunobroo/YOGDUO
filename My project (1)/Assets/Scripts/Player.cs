@@ -78,7 +78,7 @@ public class Player : MonoBehaviour
         bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
         bool running = sprintHeld && !carryingCrown && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
-        Stamina = Mathf.Clamp01(Stamina + (running ? -.27f : .2f) * Time.deltaTime);
+        Stamina = Mathf.Clamp01(Stamina + (running ? -HeistProgress.StaminaDrain : .2f) * Time.deltaTime);
         if (Stamina <= 0) exhausted = true;
         return running;
     }

@@ -34,6 +34,7 @@ public class SearchAndChase : MonoBehaviour
     {
         if (target == null) target = GameObject.FindGameObjectWithTag(targetTag);
         if (agent == null) agent = GetComponent<NavMeshAgent>();
+        EnsureNavigation();
         if (target != null) player = target.GetComponent<Player>();
         SelectPatrolPoint();
         StartCoroutine(FOVRoutine());
@@ -41,7 +42,7 @@ public class SearchAndChase : MonoBehaviour
 
     void Update()
     {
-        if (agent == null || !agent.isOnNavMesh) return;
+        if (!EnsureNavigation()) return;
         if (GoblinDungeon.Instance == null || !GoblinDungeon.Instance.Playing) { agent.isStopped = true; return; }
         agent.isStopped = false;
         if (RecoverCrown()) return;
@@ -69,6 +70,13 @@ public class SearchAndChase : MonoBehaviour
         if (player != null && !player.Hidden && Vector3.Distance(transform.position, target.transform.position) < .85f &&
             !Physics.Linecast(transform.position + Vector3.up * .5f, target.transform.position + Vector3.up * .5f, visionBlockMask))
             GoblinDungeon.Instance.Caught();
+    }
+
+    bool EnsureNavigation()
+    {
+        if (agent == null || !agent.enabled) return false;
+        if (agent.isOnNavMesh) return true;
+        return NavMesh.SamplePosition(transform.position, out var point, 2, agent.areaMask) && agent.Warp(point.position);
     }
 
     bool RecoverCrown()

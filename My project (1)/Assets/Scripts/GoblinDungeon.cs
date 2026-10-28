@@ -6,6 +6,10 @@ using UnityEngine.SceneManagement;
 public class GoblinDungeon : MonoBehaviour
 {
     public static GoblinDungeon Instance { get; private set; }
+    [Header("Campaign")]
+    public bool isHub;
+    [Range(1, 2)] public int levelNumber = 1;
+    public string levelTitle = "The Dungeon";
     public Player player;
     public SearchAndChase[] guards;
     public HideSpot[] hidingSpots;
@@ -15,7 +19,6 @@ public class GoblinDungeon : MonoBehaviour
     public bool Won { get; private set; }
     public Collectible Crown { get; private set; }
     public bool CarryingCrown => Crown != null && Crown.PlayerCarrying;
-    public bool CrownProtectionUsed { get; private set; }
     public bool HitProtected => Time.time < protectedUntil;
     public string Objective => Won ? "Escaped with the crown!"
         : CarryingCrown ? "Carry the crown to the exit - sprint disabled"
@@ -27,19 +30,23 @@ public class GoblinDungeon : MonoBehaviour
     public int Gems { get; private set; }
     public int TotalCoins { get; private set; }
     public int TotalGems { get; private set; }
-    public int Bank => bank;
-    public int Boots => boots;
-    public bool SoftShoes => softShoes;
-    static int bank, boots;
-    static bool softShoes;
+    public int Bank => HeistProgress.Bank;
+    public int Boots => HeistProgress.Boots;
+    public bool SoftShoes => HeistProgress.SoftShoes;
+    public int EscapeReward => HeistProgress.EscapeReward(levelNumber, Coins, Gems);
     float protectedUntil;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetSession() { Instance = null; bank = boots = 0; softShoes = false; }
+    static void ResetSession() => Instance = null;
 
     void Awake()
     {
         Instance = this;
+        // Resolve the actual scene objects; old Inspector arrays can contain duplicate entries.
+        if (player == null) player = FindAnyObjectByType<Player>();
+        guards = FindObjectsByType<SearchAndChase>();
+        hidingSpots = FindObjectsByType<HideSpot>();
+        collectibles = FindObjectsByType<Collectible>();
         var counted = new System.Collections.Generic.HashSet<Collectible>();
         foreach (var item in collectibles)
         {
@@ -67,16 +74,15 @@ public class GoblinDungeon : MonoBehaviour
     {
         if (!Playing || !CarryingCrown) return;
         Won = true;
-        bank += Coins + Gems * 3;
+        HeistProgress.CompleteHeist(levelNumber, Coins, Gems);
     }
 
     public void Caught()
     {
-        if (!Playing || HitProtected) return;
-        // The crown absorbs one hit per run; picking it up again does not refill it.
-        if (CarryingCrown && !CrownProtectionUsed)
+        if (!Playing || isHub || HitProtected) return;
+        // Holding the crown always provides protection, including after recovering it.
+        if (CarryingCrown)
         {
-            CrownProtectionUsed = true;
             protectedUntil = Time.time + 2f;
             Crown.Drop(player.transform.position);
             return;
@@ -86,21 +92,22 @@ public class GoblinDungeon : MonoBehaviour
 
     public void OpenShop()
     {
-        if (Won) Shopping = true;
+        HeistProgress.ReturnToHub();
+    }
+
+    public void SetShopping(bool shopping)
+    {
+        if (isHub) Shopping = shopping;
     }
 
     public void BuyBoots()
     {
-        if (!Shopping || bank < 5 || boots >= 2) return;
-        bank -= 5;
-        boots++;
+        if (isHub) HeistProgress.BuyBoots();
     }
 
     public void BuySoftShoes()
     {
-        if (!Shopping || bank < 4 || softShoes) return;
-        bank -= 4;
-        softShoes = true;
+        if (isHub) HeistProgress.BuySoftShoes();
     }
     public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
