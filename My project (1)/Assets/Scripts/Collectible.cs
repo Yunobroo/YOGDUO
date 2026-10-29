@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 public class Collectible : MonoBehaviour
 {
-    public enum Kind { Coin, Gem, Crown }
+    public enum Kind { Coin, Gem, Crown, Key }
     public Kind kind;
     public Transform visual;
     public float pickupRadius = .8f;
@@ -37,7 +37,7 @@ public class Collectible : MonoBehaviour
         Vector3 playerPosition = game.player.transform.position;
         if (Vector3.Distance(playerPosition, transform.position) > pickupRadius) return;
         if (Physics.Linecast(playerPosition + Vector3.up * .5f, transform.position + Vector3.up * .5f, wallMask)) return;
-        if (kind == Kind.Crown)
+        if (Carryable(game))
         {
             PlayerCarrying = true;
             Dropped = false;
@@ -54,8 +54,8 @@ public class Collectible : MonoBehaviour
     void AttachTo(Transform carrier)
     {
         transform.SetParent(carrier, false);
-        transform.localPosition = new Vector3(0, .8f, .55f);
-        transform.localRotation = Quaternion.identity;
+        transform.localPosition = new Vector3(0, .8f, .55f); 
+        transform.eulerAngles = new Vector3(0, 90, 0);
         if (visual != null)
         {
             visual.localPosition = Vector3.zero;
@@ -77,7 +77,11 @@ public class Collectible : MonoBehaviour
 
     public bool TryGuardPickup(SearchAndChase guard)
     {
-        if (!Dropped || GuardCarrier != null || guard == null) return false;
+        if (!Dropped ||                 //If not dropped
+            GuardCarrier != null ||     //If already targeted
+            guard == null ||            //If input was null
+            kind == Kind.Key)           //Don't pick up keys
+            return false;
         if (Vector3.Distance(guard.transform.position, transform.position) > pickupRadius) return false;
         if (Physics.Linecast(guard.transform.position + Vector3.up * .5f,
             transform.position + Vector3.up * .5f, wallMask)) return false;
@@ -102,5 +106,20 @@ public class Collectible : MonoBehaviour
         transform.rotation = homeRotation;
         transform.localScale = homeScale;
         if (visual != null) visual.localPosition = visualPosition;
+    }
+
+    private bool Carryable(GoblinDungeon game)
+    {
+        if(kind != Kind.Crown || kind != Kind.Key)
+        {
+            return false;
+        }
+
+        if(game.CarryingCrown || game.CarryingKey)
+        {
+            return false ;
+        }
+
+        return true;
     }
 }
