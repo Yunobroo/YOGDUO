@@ -19,17 +19,20 @@ public class Player : MonoBehaviour
     Transform movementCamera;
     bool crouchToggled, sprintToggled, exhausted;
     float stepDistance;
+    private bool movementEnabled = true;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         body = transform.Find("Body");
+        Hidden = false;
         if (Camera.main != null) movementCamera = Camera.main.transform;
     }
 
     void Update()
     {
         var game = GoblinDungeon.Instance;
+
         if (game == null || !game.Playing)
         {
             NoiseRadius = 0;
@@ -38,12 +41,23 @@ public class Player : MonoBehaviour
             return;
         }
 
+        //Movement
         Vector2 input = ReadMovementInput();
         bool running = UpdateMovementMode(input, game.CarryingCrown);
-        Vector3 displacement = Move(input, running, game);
+        if (movementEnabled)
+        {
+            Move(input, running, game);
+        }
+
+        //Sneaking
         Hidden = Sneaking && game.InHidingSpot(transform.position);
-        UpdateFootsteps(displacement, running, game.SoftShoes);
-        if (body != null) body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);
+        if (body != null)
+        {
+            body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);   //Shrink when sneaking
+            body.gameObject.SetActive(!Hidden);                          //If completely hidden turn the body invisible
+            movementEnabled = !Hidden;                                  //If completely hidden disable movement
+        }
+
     }
 
     Vector2 ReadMovementInput()
@@ -83,21 +97,23 @@ public class Player : MonoBehaviour
         return running;
     }
 
-    Vector3 Move(Vector2 input, bool running, GoblinDungeon game)
+    void Move(Vector2 input, bool running, GoblinDungeon game)
     {
-        // Project camera axes onto the floor: W moves up the screen, D moves right.
-        Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
-        Vector3 forward = movementCamera != null ? movementCamera.forward : Vector3.forward;
-        right.y = forward.y = 0;
-        Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
-        direction = Vector3.ClampMagnitude(direction, 1);
-        float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + game.Boots * .5f : walkSpeed;
-        Vector3 before = transform.position;
-        controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
-        if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
-        Vector3 displacement = transform.position - before;
-        displacement.y = 0;
-        return displacement;
+            // Project camera axes onto the floor: W moves up the screen, D moves right.
+            Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
+            Vector3 forward = movementCamera != null ? movementCamera.forward : Vector3.forward;
+            right.y = forward.y = 0;
+            Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
+            direction = Vector3.ClampMagnitude(direction, 1);
+            float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + game.Boots * .5f : walkSpeed;
+            Vector3 before = transform.position;
+            controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
+            if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
+            Vector3 displacement = transform.position - before;
+            displacement.y = 0;
+
+        
+            UpdateFootsteps(displacement, running, game.SoftShoes);
     }
 
     void UpdateFootsteps(Vector3 displacement, bool running, bool softShoes)
@@ -117,5 +133,6 @@ public class Player : MonoBehaviour
         else stepDistance = 0;
 
     }
+
 }
 
