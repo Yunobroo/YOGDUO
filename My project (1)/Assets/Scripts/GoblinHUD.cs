@@ -55,13 +55,21 @@ public class GoblinHUD : MonoBehaviour
             float side = Mathf.Min(Screen.height > 1000 ? 320 : 280, (w - margin * 3) * .5f);
             float controlsX = w - margin - side;
             var player = game.player;
+
             Panel(new Rect(margin, margin, side, 100));
-            float half = (side - 24) * .5f;
-            GUI.Label(new Rect(margin + 12, margin + 8, half, 22), "COINS", hint);
-            GUI.Label(new Rect(margin + 12 + half, margin + 8, half, 22), "GEMS", hint);
-            GUI.Label(new Rect(margin + 12, margin + 31, half, 26), game.Coins + " / " + game.TotalCoins, title);
-            GUI.Label(new Rect(margin + 12 + half, margin + 31, half, 26), game.Gems + " / " + game.TotalGems, title);
+
+            float columnWidth = (side - 24) / 3f;
+
+            GUI.Label(new Rect(margin + 12, margin + 8, columnWidth, 22), "COINS", hint);
+            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 8, columnWidth, 22), "GEMS", hint);
+            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Orb", hint);
+
+            GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26), game.Coins + " / " + game.TotalCoins, title);
+            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26), game.Gems + " / " + game.TotalGems, title);
+            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), game.Orbs + " / " + game.TotalOrbs, title);
+            
             Fill(new Rect(margin + 12, margin + 63, side - 24, 1), new Color(.3f, .32f, .32f, .6f));
+
             GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Purse: " + game.Bank + " coins", hint);
 
             Panel(new Rect(controlsX, margin, side, 100));
