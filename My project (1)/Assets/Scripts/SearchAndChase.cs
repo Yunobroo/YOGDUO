@@ -20,18 +20,21 @@ public class SearchAndChase : MonoBehaviour
     public string patrolPointTag;
     public Transform[] patrolPoints;
     public string Status => state.ToString();
-    enum State { Patrolling, Chasing, LastKnownLocation, Lingering }
+    public bool Investigating => state == State.LastKnownLocation || state == State.Lingering;
+    enum State { Patrolling, Chasing, LastKnownLocation, Lingering, RecoveringCrown, ReturningCrown }
     State state;
     Vector3 currentDestination;
     int patrolIndex;
     float searchTime;
     Player player;
     int heardFootstep;
+    Coroutine lingerRoutine;
 
     void Start()
     {
         if (target == null) target = GameObject.FindGameObjectWithTag(targetTag);
         if (agent == null) agent = GetComponent<NavMeshAgent>();
+        EnsureNavigation();
         if (target != null) player = target.GetComponent<Player>();
         SelectPatrolPoint();
         StartCoroutine(FOVRoutine());
@@ -39,16 +42,86 @@ public class SearchAndChase : MonoBehaviour
 
     void Update()
     {
-        if (agent == null || !agent.isOnNavMesh) return;
+        if (!EnsureNavigation()) return;
         if (GoblinDungeon.Instance == null || !GoblinDungeon.Instance.Playing) { agent.isStopped = true; return; }
         agent.isStopped = false;
+        if (RecoverCrown()) return;
         if (CanSeeTarget)
         {
+            StopLingering();
             state = State.Chasing;
             currentDestination = target.transform.position;
             searchTime = 2;
         }
         else if (state == State.Chasing) state = State.LastKnownLocation;
+        ListenForFootsteps();
+        agent.speed = state == State.Chasing ? 4.1f : 2f;
+        agent.SetDestination(currentDestination);
+        if (!agent.pathPending && agent.remainingDistance <= destinationTolerance)
+        {
+            if (state == State.Patrolling) SelectPatrolPoint();
+            else if (state == State.LastKnownLocation)
+            {
+                transform.Rotate(0, 75 * Time.deltaTime, 0);
+                state = State.Lingering;
+                lingerRoutine = StartCoroutine(Linger());
+            }
+        }
+        if (player != null && !player.Hidden && Vector3.Distance(transform.position, target.transform.position) < .85f &&
+            !Physics.Linecast(transform.position + Vector3.up * .5f, target.transform.position + Vector3.up * .5f, visionBlockMask))
+            GoblinDungeon.Instance.Caught();
+    }
+
+    bool EnsureNavigation()
+    {
+        if (agent == null || !agent.enabled) return false;
+        if (agent.isOnNavMesh) return true;
+        return NavMesh.SamplePosition(transform.position, out var point, 2, agent.areaMask) && agent.Warp(point.position);
+    }
+
+    bool RecoverCrown()
+    {
+        var crown = GoblinDungeon.Instance.Crown;
+        if (crown == null) return false;
+        if (crown.GuardCarrier != this && !crown.Dropped)
+        {
+            if (state == State.RecoveringCrown || state == State.ReturningCrown)
+            {
+                state = State.Patrolling;
+                SelectPatrolPoint();
+            }
+            return false;
+        }
+
+        StopLingering();
+        if (crown.Dropped) crown.TryGuardPickup(this);
+        bool returning = crown.GuardCarrier == this;
+        state = returning ? State.ReturningCrown : State.RecoveringCrown;
+        Vector3 destination = returning ? crown.HomePosition : crown.transform.position;
+        // The pedestal may not be walkable, so approach its nearest floor point.
+        if (NavMesh.SamplePosition(destination, out var hit, 2f, agent.areaMask)) destination = hit.position;
+        currentDestination = destination;
+        agent.speed = 2f;
+        agent.SetDestination(destination);
+        if (returning && !agent.pathPending && agent.pathStatus == NavMeshPathStatus.PathComplete &&
+            agent.remainingDistance <= destinationTolerance && Vector3.Distance(transform.position, destination) <= 1f)
+        {
+            crown.ReturnHome(this);
+            state = State.Patrolling;
+            SelectPatrolPoint();
+        }
+        return true;
+    }
+
+    void StopLingering()
+    {
+        if (lingerRoutine == null) return;
+        StopCoroutine(lingerRoutine);
+        lingerRoutine = null;
+    }
+
+    void ListenForFootsteps()
+    {
         if (player != null && player.FootstepId != heardFootstep)
         {
             heardFootstep = player.FootstepId;
@@ -58,26 +131,12 @@ public class SearchAndChase : MonoBehaviour
             float hearingRadius = player.FootstepRadius * (muffled ? .5f : 1f);
             if (!CanSeeTarget && Vector3.Distance(transform.position, player.FootstepPosition) < hearingRadius)
             {
+                StopLingering();
                 state = State.LastKnownLocation;
                 currentDestination = player.FootstepPosition;
                 searchTime = 2;
             }
         }
-        agent.speed = state == State.Chasing ? 4.1f : 2f;
-        agent.SetDestination(currentDestination);
-        if (!agent.pathPending && agent.remainingDistance <= destinationTolerance)
-        {
-            if (state == State.Patrolling) SelectPatrolPoint();
-            else if (state == State.LastKnownLocation)
-            {
-                transform.Rotate(0, 75 * Time.deltaTime, 0);
-                StartCoroutine(Linger());
-                state = State.Lingering; 
-            }
-        }
-        if (player != null && !player.Hidden && Vector3.Distance(transform.position, target.transform.position) < .85f &&
-            !Physics.Linecast(transform.position + Vector3.up * .5f, target.transform.position + Vector3.up * .5f, visionBlockMask))
-            GoblinDungeon.Instance.Caught();
     }
 
     IEnumerator FOVRoutine()
@@ -108,32 +167,33 @@ public class SearchAndChase : MonoBehaviour
         Debug.Log("Start Lingering");
 
         //rotate 90 degrees
-        yield return StartCoroutine(SmoothTurn(90f, 90f));
+        yield return SmoothTurn(90f, 90f);
         Debug.Log("Turn");
 
         //Wait 4 seconds
         yield return new WaitForSeconds(3f);
 
         //rotate 40 degrees
-        yield return StartCoroutine(SmoothTurn(-40f, 60f));
+        yield return SmoothTurn(-40f, 60f);
         Debug.Log("Turn");
 
         //Wait 2 seconds
         yield return new WaitForSeconds(2f); 
 
-        yield return StartCoroutine(SmoothTurn(100f, 100f));
+        yield return SmoothTurn(100f, 100f);
         Debug.Log("Turn");
 
         yield return new WaitForSeconds(2f);
 
         //rotate 20 degrees
-        yield return StartCoroutine(SmoothTurn(20f, 45f));
+        yield return SmoothTurn(20f, 45f);
         Debug.Log("Turn");
 
         yield return new WaitForSeconds(1f);
 
         searchTime -= Time.deltaTime;
         state = State.Patrolling;
+        lingerRoutine = null;
         SelectPatrolPoint();
 
         Debug.Log("Stop Lingering");
