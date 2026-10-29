@@ -44,10 +44,7 @@ public class Player : MonoBehaviour
         //Movement
         Vector2 input = ReadMovementInput();
         bool running = UpdateMovementMode(input, game.CarryingCrown);
-        if (movementEnabled)
-        {
-            Move(input, running, game);
-        }
+        Move(input, running, game);
 
         //Sneaking
         Hidden = Sneaking && game.InHidingSpot(transform.position);
@@ -58,6 +55,11 @@ public class Player : MonoBehaviour
             movementEnabled = !Hidden;                                  //If completely hidden disable movement
         }
 
+        //Update Parent Position                                        //This is to have the camera follow the player while maintaining the POV
+        gameObject.transform        //This
+            .parent.transform       //Parent
+            .position               //Parent position -> camera position
+            = transform.position;
     }
 
     Vector2 ReadMovementInput()
@@ -106,6 +108,7 @@ public class Player : MonoBehaviour
             Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
             direction = Vector3.ClampMagnitude(direction, 1);
             float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + game.Boots * .5f : walkSpeed;
+            if(!movementEnabled) { speed = 0; }
             Vector3 before = transform.position;
             controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
             if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
