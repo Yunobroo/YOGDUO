@@ -30,8 +30,10 @@ public class GoblinDungeon : MonoBehaviour
     public bool Shopping { get; private set; }
     public int Coins { get; private set; }
     public int Gems { get; private set; }
+    public int Orbs { get; private set; }
     public int TotalCoins { get; private set; }
     public int TotalGems { get; private set; }
+    public int TotalOrbs { get; private set; }
     public int Bank => HeistProgress.Bank;
     public int Boots => HeistProgress.Boots;
     public bool SoftShoes => HeistProgress.SoftShoes;
@@ -53,10 +55,20 @@ public class GoblinDungeon : MonoBehaviour
         foreach (var item in collectibles)
         {
             if (item == null || !counted.Add(item)) continue;
-            if (item.kind == Collectible.Kind.Coin) TotalCoins++;
-            if (item.kind == Collectible.Kind.Gem) TotalGems++;
-            if (item.kind == Collectible.Kind.Crown) Crown = item;
-            if (item.kind == Collectible.Kind.Key) Key = item;
+
+            switch (item.kind)
+            {
+                case Collectible.Kind.Coin:
+                    TotalCoins++; break;
+                case Collectible.Kind.Gem:
+                    TotalGems++; break;
+                case Collectible.Kind.Orb:
+                    TotalOrbs++; break;
+                case Collectible.Kind.Crown:
+                    Crown = item; break;
+                case Collectible.Kind.Key:
+                    Key = item; break;
+            }
         }
     }
 
@@ -69,8 +81,15 @@ public class GoblinDungeon : MonoBehaviour
     public void Collect(Collectible.Kind kind)
     {
         if (!Playing) return;
-        if (kind == Collectible.Kind.Coin) Coins++;
-        else if (kind == Collectible.Kind.Gem) Gems++;
+        switch (kind)
+        {
+            case Collectible.Kind.Coin:
+                Coins++; break;
+            case Collectible.Kind.Gem:
+                Gems++; break;
+            case Collectible.Kind.Orb:
+                Orbs++; break;
+        }
     }
 
     public void Escape()
