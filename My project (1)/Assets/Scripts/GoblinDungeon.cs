@@ -19,6 +19,8 @@ public class GoblinDungeon : MonoBehaviour
     public bool Won { get; private set; }
     public Collectible Crown { get; private set; }
     public bool CarryingCrown => Crown != null && Crown.PlayerCarrying;
+    public Collectible Key { get; private set; }
+    public bool CarryingKey => Key != null && Key.PlayerCarrying;
     public bool HitProtected => Time.time < protectedUntil;
     public string Objective => Won ? "Escaped with the crown!"
         : CarryingCrown ? "Carry the crown to the exit - sprint disabled"
@@ -54,6 +56,7 @@ public class GoblinDungeon : MonoBehaviour
             if (item.kind == Collectible.Kind.Coin) TotalCoins++;
             if (item.kind == Collectible.Kind.Gem) TotalGems++;
             if (item.kind == Collectible.Kind.Crown) Crown = item;
+            if (item.kind == Collectible.Kind.Key) Key = item;
         }
     }
 
@@ -81,10 +84,11 @@ public class GoblinDungeon : MonoBehaviour
     {
         if (!Playing || isHub || HitProtected) return;
         // Holding the crown always provides protection, including after recovering it.
-        if (CarryingCrown)
+        if (CarryingCrown || CarryingKey)
         {
             protectedUntil = Time.time + 2f;
             Crown.Drop(player.transform.position);
+            Key.Drop(player.transform.position);
             return;
         }
         CaughtPlayer = true;
