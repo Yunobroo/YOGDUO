@@ -58,16 +58,18 @@ public class GoblinHUD : MonoBehaviour
 
             Panel(new Rect(margin, margin, side, 100));
 
-            float columnWidth = (side - 24) / 3f;
+            float columnWidth = (side - 24) / 4f;
 
-            GUI.Label(new Rect(margin + 12, margin + 8, columnWidth, 22), "COINS", hint);
-            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 8, columnWidth, 22), "GEMS", hint);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Orb", hint);
+            GUI.Label(new Rect(margin + 12, margin + 8, columnWidth, 22), "Coins", hint);
+            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 8, columnWidth, 22), "Gems", hint);
+            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Gold Bars", hint);
+            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 8, columnWidth, 22), "Orb", hint);
 
             GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26), game.Coins + " / " + game.TotalCoins, title);
             GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26), game.Gems + " / " + game.TotalGems, title);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), game.Orbs + " / " + game.TotalOrbs, title);
-            
+            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), game.Bars + " / " + game.TotalBars, title);
+            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26), game.Orbs + " / " + game.TotalOrbs, title);
+
             Fill(new Rect(margin + 12, margin + 63, side - 24, 1), new Color(.3f, .32f, .32f, .6f));
 
             GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Purse: " + game.Bank + " coins", hint);

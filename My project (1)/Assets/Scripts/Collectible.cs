@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 public class Collectible : MonoBehaviour
 {
-    public enum Kind { Coin, Gem, Orb, Crown, Key }
+    public enum Kind { Coin, Gem, Orb, Crown, Key, Bar }
     public Kind kind;
     public Transform visual;
     public float pickupRadius = .8f;

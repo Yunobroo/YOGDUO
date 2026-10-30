@@ -31,13 +31,17 @@ public class GoblinDungeon : MonoBehaviour
     public int Coins { get; private set; }
     public int Gems { get; private set; }
     public int Orbs { get; private set; }
+
+    public int Bars { get; private set; }
     public int TotalCoins { get; private set; }
     public int TotalGems { get; private set; }
     public int TotalOrbs { get; private set; }
+
+    public int TotalBars { get; private set; }
     public int Bank => HeistProgress.Bank;
     public int Boots => HeistProgress.Boots;
     public bool SoftShoes => HeistProgress.SoftShoes;
-    public int EscapeReward => HeistProgress.EscapeReward(levelNumber, Coins, Gems);
+    public int EscapeReward => HeistProgress.EscapeReward(levelNumber, Coins, Gems, Bars);
     float protectedUntil;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -68,6 +72,8 @@ public class GoblinDungeon : MonoBehaviour
                     Crown = item; break;
                 case Collectible.Kind.Key:
                     Key = item; break;
+                case Collectible.Kind.Bar:
+                    TotalBars++; break;
             }
         }
     }
@@ -89,6 +95,8 @@ public class GoblinDungeon : MonoBehaviour
                 Gems++; break;
             case Collectible.Kind.Orb:
                 Orbs++; break;
+            case Collectible.Kind.Bar:
+                Bars++; break;
         }
     }
 
@@ -96,7 +104,7 @@ public class GoblinDungeon : MonoBehaviour
     {
         if (!Playing || !CarryingCrown) return;
         Won = true;
-        HeistProgress.CompleteHeist(levelNumber, Coins, Gems);
+        HeistProgress.CompleteHeist(levelNumber, Coins, Gems, Bars);
     }
 
     public void Caught()
