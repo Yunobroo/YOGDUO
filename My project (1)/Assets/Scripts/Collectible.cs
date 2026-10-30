@@ -37,8 +37,9 @@ public class Collectible : MonoBehaviour
         Vector3 playerPosition = game.player.transform.position;
         if (Vector3.Distance(playerPosition, transform.position) > pickupRadius) return;
         if (Physics.Linecast(playerPosition + Vector3.up * .5f, transform.position + Vector3.up * .5f, wallMask)) return;
-        if (Carryable(game))
+        if (kind == Kind.Crown || kind == Kind.Key)
         {
+            if (game.CarryingCrown || game.CarryingKey) return; 
             PlayerCarrying = true;
             Dropped = false;
             AttachTo(game.player.transform);
@@ -49,6 +50,7 @@ public class Collectible : MonoBehaviour
             collected = true;
             gameObject.SetActive(false);
         }
+
     }
 
     void AttachTo(Transform carrier)
@@ -106,20 +108,5 @@ public class Collectible : MonoBehaviour
         transform.rotation = homeRotation;
         transform.localScale = homeScale;
         if (visual != null) visual.localPosition = visualPosition;
-    }
-
-    private bool Carryable(GoblinDungeon game)
-    {
-        if(kind != Kind.Crown || kind != Kind.Key)
-        {
-            return false;
-        }
-
-        if(game.CarryingCrown || game.CarryingKey)
-        {
-            return false ;
-        }
-
-        return true;
     }
 }
