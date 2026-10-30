@@ -3,7 +3,7 @@ using UnityEngine.AI;
 
 public class Collectible : MonoBehaviour
 {
-    public enum Kind { Coin, Gem, Orb, Crown, Key }
+    public enum Kind { Coin, Gem, Orb, Crown, Key, Bar }
     public Kind kind;
     public Transform visual;
     public float pickupRadius = .8f;
@@ -13,13 +13,16 @@ public class Collectible : MonoBehaviour
     public bool Dropped { get; private set; }
     public SearchAndChase GuardCarrier { get; private set; }
     public Vector3 HomePosition { get; private set; }
+    public AudioClip pickupSound;
     Transform homeParent;
     Quaternion homeRotation;
     Vector3 homeScale, visualPosition;
     float playerPickupAllowedAt;
+    private GoblinDungeon game;
 
     void Awake()
     {
+        game = GameObject.FindGameObjectWithTag("GameController").GetComponent<GoblinDungeon>();
         HomePosition = transform.position;
         homeParent = transform.parent;
         homeRotation = transform.rotation;
@@ -31,24 +34,25 @@ public class Collectible : MonoBehaviour
     {
         if (collected || PlayerCarrying || GuardCarrier != null) return;
         if (visual != null) visual.Rotate(0, 65 * Time.deltaTime, 0, Space.World);
-        var game = GoblinDungeon.Instance;
         if (game == null || !game.Playing || game.player == null) return;
         if (Time.time < playerPickupAllowedAt) return;
         Vector3 playerPosition = game.player.transform.position;
         if (Vector3.Distance(playerPosition, transform.position) > pickupRadius) return;
         if (Physics.Linecast(playerPosition + Vector3.up * .5f, transform.position + Vector3.up * .5f, wallMask)) return;
-        if (Carryable(game))
+        if (kind == Kind.Crown || kind == Kind.Key)
         {
+            if (game.CarryingCrown || game.CarryingKey) return;
             PlayerCarrying = true;
             Dropped = false;
             AttachTo(game.player.transform);
         }
         else
         {
-            game.Collect(kind);
             collected = true;
             gameObject.SetActive(false);
         }
+
+        game.Collect(this);
     }
 
     void AttachTo(Transform carrier)
@@ -106,20 +110,5 @@ public class Collectible : MonoBehaviour
         transform.rotation = homeRotation;
         transform.localScale = homeScale;
         if (visual != null) visual.localPosition = visualPosition;
-    }
-
-    private bool Carryable(GoblinDungeon game)
-    {
-        if(kind != Kind.Crown || kind != Kind.Key)
-        {
-            return false;
-        }
-
-        if(game.CarryingCrown || game.CarryingKey)
-        {
-            return false ;
-        }
-
-        return true;
     }
 }

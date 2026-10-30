@@ -83,6 +83,7 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 0
+  pickupSound: {fileID: 8300000, guid: cbede63883831f2449962445af562632, type: 3}
 --- !u!1001 &1833484094592779112
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -131,6 +132,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: f79ccd69035ceae489acf36ca00cd386, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9a32c13b1f8ead644b42d4b76a4d4502, type: 2}
     - target: {fileID: 919132149155446097, guid: f79ccd69035ceae489acf36ca00cd386, type: 3}
       propertyPath: m_Name
       value: coin

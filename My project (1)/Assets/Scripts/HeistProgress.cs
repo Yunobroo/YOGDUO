@@ -46,11 +46,15 @@ public static class HeistProgress
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetCache() => data = null;
 
-    public static int EscapeReward(int level, int coins, int gems) => coins + gems * 3 + (level == 2 ? 10 : 5);
+    public static int EscapeReward(int level, int coins, int gems, int bars) => 
+        coins + 
+        gems * 3 + 
+        bars * 5 +
+        (level == 2 ? 10 : 5);
 
-    public static void CompleteHeist(int level, int coins, int gems)
+    public static void CompleteHeist(int level, int coins, int gems, int bars)
     {
-        Data.bank += EscapeReward(level, coins, gems);
+        Data.bank += EscapeReward(level, coins, gems, bars);
         Data.crowns++;
         if (level == 1) Data.levelTwoUnlocked = true;
         if (level == 2) Data.campaignComplete = true;
