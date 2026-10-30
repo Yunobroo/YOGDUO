@@ -83,6 +83,7 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 0
+  pickupSound: {fileID: 8300000, guid: cbede63883831f2449962445af562632, type: 3}
 --- !u!1001 &1833484094592779112
 PrefabInstance:
   m_ObjectHideFlags: 0

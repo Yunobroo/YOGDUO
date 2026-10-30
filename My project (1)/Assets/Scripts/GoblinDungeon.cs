@@ -84,10 +84,10 @@ public class GoblinDungeon : MonoBehaviour
         return false;
     }
 
-    public void Collect(Collectible.Kind kind)
+    public void Collect(Collectible collectable)
     {
         if (!Playing) return;
-        switch (kind)
+        switch (collectable.kind)
         {
             case Collectible.Kind.Coin:
                 Coins++; break;
@@ -98,6 +98,10 @@ public class GoblinDungeon : MonoBehaviour
             case Collectible.Kind.Bar:
                 Bars++; break;
         }
+
+        var audioSource = GetComponent<AudioSource>();
+        audioSource.clip = collectable.pickupSound;
+        audioSource.Play();
     }
 
     public void Escape()

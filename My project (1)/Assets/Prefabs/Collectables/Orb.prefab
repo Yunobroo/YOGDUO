@@ -109,3 +109,4 @@ MonoBehaviour:
   wallMask:
     serializedVersion: 2
     m_Bits: 0
+  pickupSound: {fileID: 8300000, guid: f92f4b4b6dddd744ea7ec17fd76e03f2, type: 3}
