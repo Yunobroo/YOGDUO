@@ -28,10 +28,10 @@ public static class CampaignValidation
         try
         {
             cache.SetValue(null, Activator.CreateInstance(cache.FieldType, true));
-            Check(HeistProgress.Bank == 0 && !HeistProgress.LevelTwoUnlocked, "New campaign starts with Level 2 locked");
+            Check(HeistProgress.Bank == 0 && !HeistProgress.data.completedLevels.Contains(1), "New campaign starts with Level 2 locked");
             Check(!HeistProgress.BuyBoots(), "Insufficient funds cannot purchase upgrades");
-            HeistProgress.CompleteHeist(1, 8, 2, 3);
-            Check(HeistProgress.Bank == 19 && HeistProgress.LevelTwoUnlocked, "Level 1 banks loot plus bounty and unlocks Level 2");
+            HeistProgress.CompleteHeist(1, 8, 2, 3, 1);
+            Check(HeistProgress.Bank == 19 && HeistProgress.data.completedLevels.Contains(1), "Level 1 banks loot plus bounty and unlocks Level 2");
             Check(HeistProgress.BuyBoots() && HeistProgress.BuySoftShoes() && HeistProgress.BuyStamina(), "All three shop upgrades purchase successfully");
             Check(HeistProgress.Bank == 4, "Shop deducts the correct prices");
             cache.SetValue(null, null);

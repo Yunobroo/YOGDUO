@@ -159,9 +159,9 @@ public static class CampaignBuilder
         var hub = game.gameObject.AddComponent<ShopHub>();
         hub.stations = new[]
         {
-            Station("Browse the fence's wares", HubStation.Destination.Shop, new Vector3(0, 0, 4)),
-            Station("Enter Level 1 / The Dungeon", HubStation.Destination.FirstHeist, new Vector3(-8, 0, -1)),
-            Station("Enter Level 2 / The Royal Vault", HubStation.Destination.SecondHeist, new Vector3(8, 0, -1))
+            Station("Browse the fence's wares", 0, new Vector3(0, 0, 4)),
+            Station("Enter Level 1 / The Dungeon", 1, new Vector3(-8, 0, -1)),
+            Station("Enter Level 2 / The Royal Vault", 2, new Vector3(8, 0, -1))
         };
         Gate("THE DUNGEON", new Vector3(-8, 0, 0), green);
         Gate("ROYAL VAULT", new Vector3(8, 0, 0), blue);
@@ -246,7 +246,7 @@ public static class CampaignBuilder
         navigation.enabled = true;
     }
 
-    static HubStation Station(string name, HubStation.Destination destination, Vector3 position)
+    static HubStation Station(string name, int destination, Vector3 position)
     {
         var station = new GameObject(name).AddComponent<HubStation>();
         station.transform.position = position;

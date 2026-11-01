@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Unity.VisualScripting;
+using UnityEditorInternal;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -5,19 +8,25 @@ using UnityEngine.SceneManagement;
 public static class HeistProgress
 {
     public const string HubScene = "ShopHub";
-    public const string FirstLevelScene = "GoblinDungeon";
-    public const string SecondLevelScene = "GoblinDungeon2";
+    public static Dictionary<int, string> Levels = new Dictionary<int, string>{
+    { 0, "Shop" },
+    { 1, "Level_1" },
+    { 2, "GoblinDungeon2" }
+    };
     const string SaveKey = "GoblinHeist.Progress.v1";
 
     [System.Serializable]
-    class SaveData
+    public class SaveData
     {
         public int bank, boots, stamina, crowns;
-        public bool softShoes, levelTwoUnlocked, campaignComplete;
+        public bool softShoes, campaignComplete;
+
+        public List<int> completedLevels = new List<int>();
+        public List<int> levelsWithOrbCollected = new List<int>();
     }
 
-    static SaveData data;
-    static SaveData Data
+    public static SaveData data;
+    public static SaveData Data
     {
         get
         {
@@ -38,7 +47,6 @@ public static class HeistProgress
     public static int Boots => Data.boots;
     public static int StaminaUpgrades => Data.stamina;
     public static bool SoftShoes => Data.softShoes;
-    public static bool LevelTwoUnlocked => Data.levelTwoUnlocked;
     public static bool CampaignComplete => Data.campaignComplete;
     public static int Crowns => Data.crowns;
     public static float StaminaDrain => .27f / (1 + StaminaUpgrades * .25f);
@@ -52,12 +60,13 @@ public static class HeistProgress
         bars * 5 +
         (level == 2 ? 10 : 5);
 
-    public static void CompleteHeist(int level, int coins, int gems, int bars)
+    public static void CompleteHeist(int level, int coins, int gems, int bars, int orb)
     {
         Data.bank += EscapeReward(level, coins, gems, bars);
         Data.crowns++;
-        if (level == 1) Data.levelTwoUnlocked = true;
         if (level == 2) Data.campaignComplete = true;
+        Data.completedLevels.Add(level);
+        if(orb > 0) Data.levelsWithOrbCollected.Add(level);
         Save();
     }
 
@@ -90,8 +99,7 @@ public static class HeistProgress
 
     public static void EnterLevel(int level)
     {
-        if (level == 2 && !LevelTwoUnlocked) return;
-        SceneManager.LoadScene(level == 2 ? SecondLevelScene : FirstLevelScene);
+        SceneManager.LoadScene(Levels[level]);
     }
 
     public static void ReturnToHub() => SceneManager.LoadScene(HubScene);

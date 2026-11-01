@@ -12,19 +12,27 @@ public class ShopHub : MonoBehaviour
     void Update()
     {
         var game = GoblinDungeon.Instance;
+
         if (game == null || !game.isHub) return;
+
         nearby = null;
+
         foreach (var station in stations)
             if (station != null && station.InRange(game.player)) { nearby = station; break; }
-        if (nearby == null || nearby.destination != HubStation.Destination.Shop) Close();
+
+        if (nearby == null || nearby.destination != 0) Close();
+
         bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
             || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
+
         if (interact && nearby != null) Interact();
+
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             if (trading) trading = false;
             else Close();
         }
+
         game.SetShopping(shopOpen);
     }
 
@@ -36,7 +44,8 @@ public class ShopHub : MonoBehaviour
 
     void Interact()
     {
-        if (nearby.destination == HubStation.Destination.Shop)
+        Debug.Log($"Interacted to go to destination: {nearby.destination}");
+        if (nearby.destination == 0)
         {
             if (shopOpen) Close();
             else
@@ -46,7 +55,7 @@ public class ShopHub : MonoBehaviour
             }
             GoblinDungeon.Instance.SetShopping(shopOpen);
         }
-        else HeistProgress.EnterLevel(nearby.destination == HubStation.Destination.SecondHeist ? 2 : 1);
+        else HeistProgress.EnterLevel((int)nearby.destination);
     }
 
     void Styles()
@@ -85,9 +94,10 @@ public class ShopHub : MonoBehaviour
             if (shopOpen) DrawConversation();
             else if (nearby != null)
             {
-                bool locked = nearby.destination == HubStation.Destination.SecondHeist && !HeistProgress.LevelTwoUnlocked;
-                string action = nearby.destination == HubStation.Destination.Shop ? "Talk"
-                    : nearby.destination == HubStation.Destination.FirstHeist ? "Enter dungeon"
+                bool locked = !HeistProgress.data.completedLevels.Contains(nearby.destination--);
+                if(nearby.destination == 1) locked = false; //Don't lock level 1
+                string action = nearby.destination == 0 ? "Talk"
+                    : nearby.destination == 1 ? "Enter dungeon"
                     : locked ? "Vault locked" : "Enter royal vault";
                 string key = Gamepad.current != null ? "A / Cross" : "E";
                 GUI.enabled = !locked;
@@ -115,7 +125,7 @@ public class ShopHub : MonoBehaviour
         if (GUI.Button(new Rect(254, 643, 180, 34), trading ? "Back" : "Show me.", button)) trading = !trading;
         if (GUI.Button(new Rect(454, 643, 180, 34), "Any work?", button))
             dialogue = HeistProgress.CampaignComplete ? "Still plenty of gold in those vaults. Help yourself."
-                : HeistProgress.LevelTwoUnlocked ? "The royal vault's open. Gate on your right."
+                : HeistProgress.data.completedLevels.Contains(1) ? "The royal vault's open. Gate on your right."
                 : "Bring back the dungeon crown. Then I'll open the royal vault.";
         if (GUI.Button(new Rect(844, 643, 180, 34), "Goodbye.", button))
         {

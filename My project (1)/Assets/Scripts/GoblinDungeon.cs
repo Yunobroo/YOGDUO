@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using UnityEditor.Overlays;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
@@ -8,7 +9,7 @@ public class GoblinDungeon : MonoBehaviour
     public static GoblinDungeon Instance { get; private set; }
     [Header("Campaign")]
     public bool isHub;
-    [Range(1, 2)] public int levelNumber = 1;
+    public int levelNumber = 1;
     public string levelTitle = "The Dungeon";
     public Player player;
     public SearchAndChase[] guards;
@@ -67,7 +68,10 @@ public class GoblinDungeon : MonoBehaviour
                 case Collectible.Kind.Gem:
                     TotalGems++; break;
                 case Collectible.Kind.Orb:
-                    TotalOrbs++; break;
+                    TotalOrbs++; 
+                    if(HeistProgress.data.levelsWithOrbCollected.Contains(levelNumber))
+                        item.gameObject.SetActive(false);
+                    break;
                 case Collectible.Kind.Crown:
                     Crown = item; break;
                 case Collectible.Kind.Key:
@@ -108,7 +112,7 @@ public class GoblinDungeon : MonoBehaviour
     {
         if (!Playing || !CarryingCrown) return;
         Won = true;
-        HeistProgress.CompleteHeist(levelNumber, Coins, Gems, Bars);
+        HeistProgress.CompleteHeist(levelNumber, Coins, Gems, Bars, Orbs);
     }
 
     public void Caught()
