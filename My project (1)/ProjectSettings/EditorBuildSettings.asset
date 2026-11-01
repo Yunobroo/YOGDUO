@@ -6,12 +6,15 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/ShopHub.unity
+    path: Assets/Scenes/ShopHub_0.unity
     guid: 0ca2db2df17a2204fa40994ce69156bd
   - enabled: 1
     path: Assets/Scenes/Level_1.unity
     guid: 9e546aa122d7b564aa2596ddca623d34
   - enabled: 1
+    path: Assets/Scenes/Level_2.unity
+    guid: 0a558fb2cf659aa45a405d04fdb87bb5
+  - enabled: 0
     path: Assets/Scenes/GoblinDungeon2.unity
     guid: 4b69706cbce3d174c9e406df7405ac41
   m_configObjects:

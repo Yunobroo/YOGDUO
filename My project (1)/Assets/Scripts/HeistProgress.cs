@@ -7,11 +7,11 @@ using UnityEngine.SceneManagement;
 // Progress belongs to the campaign, rather than to any particular dungeon scene.
 public static class HeistProgress
 {
-    public const string HubScene = "ShopHub";
+    public const string HubScene = "ShopHub_0";
     public static Dictionary<int, string> Levels = new Dictionary<int, string>{
     { 0, "Shop" },
     { 1, "Level_1" },
-    { 2, "GoblinDungeon2" }
+    { 2, "Level_2" }
     };
     const string SaveKey = "GoblinHeist.Progress.v1";
 
