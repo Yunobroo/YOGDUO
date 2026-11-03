@@ -13,6 +13,8 @@ public class Player : MonoBehaviour
     public float Stamina { get; private set; } = 1f;
     public int FootstepId { get; private set; }
     public Vector3 FootstepPosition { get; private set; }
+
+    public static float StaminaDrain => .27f / (1 + DataManager.Data.stamina * .25f);
     public float FootstepRadius { get; private set; }
     CharacterController controller;
     Transform body;
@@ -94,7 +96,7 @@ public class Player : MonoBehaviour
         bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
         bool running = sprintHeld && !carryingCrown && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
-        Stamina = Mathf.Clamp01(Stamina + (running ? -HeistProgress.StaminaDrain : .2f) * Time.deltaTime);
+        Stamina = Mathf.Clamp01(Stamina + (running ? -StaminaDrain : .2f) * Time.deltaTime);
         if (Stamina <= 0) exhausted = true;
         return running;
     }
@@ -107,7 +109,7 @@ public class Player : MonoBehaviour
             right.y = forward.y = 0;
             Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
             direction = Vector3.ClampMagnitude(direction, 1);
-            float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + game.Boots * .5f : walkSpeed;
+            float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + DataManager.Data.boots * .5f : walkSpeed;
             if(!movementEnabled) { speed = 0; }
             Vector3 before = transform.position;
             controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
@@ -116,7 +118,7 @@ public class Player : MonoBehaviour
             displacement.y = 0;
 
         
-            UpdateFootsteps(displacement, running, game.SoftShoes);
+            UpdateFootsteps(displacement, running, DataManager.Data.softShoes);
     }
 
     void UpdateFootsteps(Vector3 displacement, bool running, bool softShoes)

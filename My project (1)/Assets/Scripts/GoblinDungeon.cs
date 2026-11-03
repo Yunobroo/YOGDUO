@@ -1,4 +1,8 @@
-﻿using UnityEditor.Overlays;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
+using UnityEditor.Overlays;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -39,10 +43,9 @@ public class GoblinDungeon : MonoBehaviour
     public int TotalOrbs { get; private set; }
 
     public int TotalBars { get; private set; }
-    public int Bank => HeistProgress.Bank;
-    public int Boots => HeistProgress.Boots;
-    public bool SoftShoes => HeistProgress.SoftShoes;
-    public int EscapeReward => HeistProgress.EscapeReward(levelNumber, Coins, Gems, Bars);
+
+    public List<Collectible> collectedCollectables = new List<Collectible>();
+
     float protectedUntil;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -57,9 +60,11 @@ public class GoblinDungeon : MonoBehaviour
         hidingSpots = FindObjectsByType<HideSpot>();
         collectibles = FindObjectsByType<Collectible>();
         var counted = new System.Collections.Generic.HashSet<Collectible>();
+
         foreach (var item in collectibles)
         {
             if (item == null || !counted.Add(item)) continue;
+            Debug.Log($"Level {levelNumber} item check: {item.kind} {item.Id} | Collected: {DataManager.IsCollected(levelNumber, item)}");
 
             switch (item.kind)
             {
@@ -69,8 +74,6 @@ public class GoblinDungeon : MonoBehaviour
                     TotalGems++; break;
                 case Collectible.Kind.Orb:
                     TotalOrbs++; 
-                    if(HeistProgress.data.levelsWithOrbCollected.Contains(levelNumber))
-                        item.gameObject.SetActive(false);
                     break;
                 case Collectible.Kind.Crown:
                     Crown = item; break;
@@ -90,29 +93,18 @@ public class GoblinDungeon : MonoBehaviour
 
     public void Collect(Collectible collectable)
     {
-        if (!Playing) return;
-        switch (collectable.kind)
-        {
-            case Collectible.Kind.Coin:
-                Coins++; break;
-            case Collectible.Kind.Gem:
-                Gems++; break;
-            case Collectible.Kind.Orb:
-                Orbs++; break;
-            case Collectible.Kind.Bar:
-                Bars++; break;
-        }
-
+        collectedCollectables.Add(collectable);
         var audioSource = GetComponent<AudioSource>();
         audioSource.clip = collectable.pickupSound;
         audioSource.Play();
+
     }
 
     public void Escape()
     {
         if (!Playing || !CarryingCrown) return;
+        DataManager.CompleteLevel(levelNumber, collectedCollectables);
         Won = true;
-        HeistProgress.CompleteHeist(levelNumber, Coins, Gems, Bars, Orbs);
     }
 
     public void Caught()
@@ -129,25 +121,11 @@ public class GoblinDungeon : MonoBehaviour
         CaughtPlayer = true;
     }
 
-    public void OpenShop()
-    {
-        HeistProgress.ReturnToHub();
-    }
-
     public void SetShopping(bool shopping)
     {
         if (isHub) Shopping = shopping;
     }
 
-    public void BuyBoots()
-    {
-        if (isHub) HeistProgress.BuyBoots();
-    }
-
-    public void BuySoftShoes()
-    {
-        if (isHub) HeistProgress.BuySoftShoes();
-    }
     public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);
 
     void Update()

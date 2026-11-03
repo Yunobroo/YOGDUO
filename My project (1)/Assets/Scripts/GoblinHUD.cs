@@ -1,10 +1,19 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
+using static Collectible;
 
 public class GoblinHUD : MonoBehaviour
 {
     public GoblinDungeon game;
     GUIStyle text, hint, right, center, title, button;
     int styledHeight;
+
+    private LevelData levelData;
+
+    private void Awake()
+    {
+        levelData = DataManager.GetLevelData(game.levelNumber);
+    }
 
     void Styles()
     {
@@ -50,6 +59,10 @@ public class GoblinHUD : MonoBehaviour
         GUI.color = Color.white;
         try
         {
+            //Debug.Log($"Level: {game.levelNumber}");
+            //Debug.Log($"Levels in current save file: {DataManager.Data.levels.Count}");
+            //Debug.Log($"Save data object: {levelData}");
+            //Debug.Log($"Total collected: {levelData.collectedCollectables.Count}");
             float w = safe.width, h = safe.height;
             float margin = w < 600 ? 8 : 16;
             float side = Mathf.Min(Screen.height > 1000 ? 320 : 280, (w - margin * 3) * .5f);
@@ -65,14 +78,25 @@ public class GoblinHUD : MonoBehaviour
             GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Gold Bars", hint);
             GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 8, columnWidth, 22), "Orb", hint);
 
-            GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26), game.Coins + " / " + game.TotalCoins, title);
-            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26), game.Gems + " / " + game.TotalGems, title);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), game.Bars + " / " + game.TotalBars, title);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26), game.Orbs + " / " + game.TotalOrbs, title);
+            GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26), 
+                $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Coin)}" +
+                $" / {game.TotalCoins}", title);
+            
+            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26), 
+                $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)+levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)}" +
+                $" / {game.TotalGems}", title);
+           
+            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), 
+                $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar) + levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar)}" +
+                $" / {game.TotalBars}", title);
+            
+            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26), 
+                $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)+levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)}" +
+                $" / {game.TotalOrbs}"   , title);
 
             Fill(new Rect(margin + 12, margin + 63, side - 24, 1), new Color(.3f, .32f, .32f, .6f));
 
-            GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Purse: " + game.Bank + " coins", hint);
+            GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Purse: " + DataManager.Data.bank + " coins", hint);
 
             Panel(new Rect(controlsX, margin, side, 100));
             bool pad = UnityEngine.InputSystem.Gamepad.current != null;
@@ -131,12 +155,14 @@ public class GoblinHUD : MonoBehaviour
         float x = panel.x + 16, contentWidth = panel.width - 32;
         GUI.Label(new Rect(x, panel.y + 12, contentWidth, 28), game.CaughtPlayer ? "Caught" : "Escaped with the crown!", title);
         string result = game.CaughtPlayer ? "Your unbanked loot was lost. Upgrades and banked coins are safe."
-            : "Banked " + game.EscapeReward + " coins (including crown bounty). "
+                : "Banked " + 
+                //game.EscapeReward + 
+                " coins (including crown bounty). "
                 + (game.levelNumber == 1 ? "Level 2 unlocked!" : "Both crowns stolen! Replay either heist from the hub.");
         GUI.Label(new Rect(x, panel.y + 44, contentWidth, 44), result, hint);
         float rowHeight = Mathf.Min(42, (panel.height - 115) / 3);
-        if (GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Return to the shop hub", button)) game.OpenShop();
-        if (game.Won && game.levelNumber == 1 && GUI.Button(new Rect(x, panel.y + 96 + rowHeight, contentWidth, rowHeight), "Enter level 2 - The Royal Vault", button)) HeistProgress.EnterLevel(2);
+        if (GUI.Button(new Rect(x, panel.y + 88, contentWidth, rowHeight), "Return to the shop hub", button)) DataManager.EnterLevel(0);
+        if (game.Won && game.levelNumber == 1 && GUI.Button(new Rect(x, panel.y + 96 + rowHeight, contentWidth, rowHeight), "Enter level 2 - The Royal Vault", button)) DataManager.EnterLevel(2);
         if (GUI.Button(new Rect(x, panel.yMax - rowHeight - 16, contentWidth, rowHeight), "Try another run", button)) game.Restart();
     }
 }

@@ -1,9 +1,12 @@
+using System;
 using UnityEngine;
 using UnityEngine.AI;
 
 public class Collectible : MonoBehaviour
 {
     public enum Kind { Coin, Gem, Orb, Crown, Key, Bar }
+    [SerializeField]private string id;
+    public string Id => id;
     public Kind kind;
     public Transform visual;
     public float pickupRadius = .8f;
@@ -23,6 +26,18 @@ public class Collectible : MonoBehaviour
     void Awake()
     {
         game = GameObject.FindGameObjectWithTag("GameController").GetComponent<GoblinDungeon>();
+        
+        if (string.IsNullOrEmpty(id))
+        {
+            id = Guid.NewGuid().ToString();
+        }
+
+
+        if (DataManager.IsCollected(game.levelNumber, this))
+        {
+            gameObject.SetActive(false);
+        }
+
         HomePosition = transform.position;
         homeParent = transform.parent;
         homeRotation = transform.rotation;

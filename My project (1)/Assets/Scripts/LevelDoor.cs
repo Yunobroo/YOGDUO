@@ -25,7 +25,7 @@ public class LevelDoor : MonoBehaviour
             if (Unlocked())
             {
                 Debug.Log("Entering Level...");
-                HeistProgress.EnterLevel(level);
+                DataManager.EnterLevel(level);
             }
         }
     }
@@ -38,7 +38,7 @@ public class LevelDoor : MonoBehaviour
 
     private bool Unlocked()
     {
-        if (level == 1 || HeistProgress.data.completedLevels.Contains(level - 1))//If one of the completed levels is the previous level or if it is the first level
+        if (level == 1 || DataManager.CompletedLevel(level - 1))
         {
             return true;
         }

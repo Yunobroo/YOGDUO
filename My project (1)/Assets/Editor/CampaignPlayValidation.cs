@@ -70,7 +70,7 @@ public static class CampaignPlayValidation
                     if (Vector3.Distance(game.Crown.transform.position, game.Crown.HomePosition) > .01f)
                         throw new InvalidOperationException("Guard did not restore the original crown position");
                     stage = 3;
-                    game.OpenShop();
+                    DataManager.EnterLevel(0);
                 }
             }
             else if (stage == 3 && game.isHub)
