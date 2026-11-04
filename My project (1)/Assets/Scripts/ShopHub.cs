@@ -12,7 +12,7 @@ public class ShopHub : MonoBehaviour
     GUIStyle text, speaker, button, purse;
     GoblinDungeon game;
     public UpgradeItem[] items = new UpgradeItem[5];
-    [SerializeField] private float offerStartY = 297f;
+    [SerializeField] private float offerStartY = 100f;
     [SerializeField] private float offerSpacing = 72f;
 
     private void Awake()
@@ -179,6 +179,10 @@ public class ShopHub : MonoBehaviour
                 GUI.enabled = false;
                 buttonText = "Max Level";
                 break ;
+            case 3:
+                GUI.enabled = false;
+                buttonText = $"Requires Orb {item.orbNeeded}";
+                break ;
         }
 
         if (GUI.Button(
@@ -186,7 +190,7 @@ public class ShopHub : MonoBehaviour
             buttonText,
             button))
         {
-            dialogue = "Thank you for your purchase!";
+            dialogue = item.buyText;
             BuyItem(item);
         }
 
@@ -203,9 +207,15 @@ public class ShopHub : MonoBehaviour
     private int ItemAvailable(UpgradeItem item)
     {
 
-        if (item.Owned() >= item.maxLevel) return 2;// "Already reached max level!" --- Put this first in the code
-        if (DataManager.Data.bank < item.cost) return 1;// "Come back with a few more gold"
+        if (item.Owned() >= item.maxLevel) return 2;                                                // "Already reached max level!" --- Put this first in the code
 
-        return 0; //Success condition
+        if (item.orbNeeded != 0                                                                     //If an orb is required
+            && !DataManager.GetLevelData(item.orbNeeded)                                            //Check the level of which the orb is required
+            .collectedCollectables.Any(collectable => collectable.kind == Collectible.Kind.Orb))    //Has the orb been collected
+            return 3;                                                                               //Locked behing orb
+
+
+        if (DataManager.Data.bank < item.cost) return 1;                                            // "Come back with a few more gold"
+        return 0;                                                                                   //Success condition
     }
 }

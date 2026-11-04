@@ -1643,6 +1643,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e15e075c058553845912b4ca578294b7, type: 2}
   - {fileID: 11400000, guid: 0b5a6c34e8674414ca60e82d58257022, type: 2}
   - {fileID: 11400000, guid: 52dfd860581bb5849a5d9bcdb7887b2e, type: 2}
+  - {fileID: 11400000, guid: 2beddc5db073b86449e6d32c6132393c, type: 2}
   offerStartY: 297
   offerSpacing: 72
 --- !u!1 &1598019767

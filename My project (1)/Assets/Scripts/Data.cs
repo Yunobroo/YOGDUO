@@ -5,7 +5,7 @@ using UnityEngine;
 public class SaveData                           //This actually gets saved
 {
     public int bank, boots, stamina;
-    public bool softShoes, campaignComplete;
+    public bool softShoes, campaignComplete, sprintWhileCarrying;
 
     public List<LevelData> levels;
 }
