@@ -1,8 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-using UnityEditor.Overlays;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -95,8 +92,8 @@ public class GoblinDungeon : MonoBehaviour
     {
         collectedCollectables.Add(collectable);
         var audioSource = GetComponent<AudioSource>();
-        audioSource.clip = collectable.pickupSound;
-        audioSource.Play();
+        if (audioSource != null && collectable.pickupSound != null)
+            audioSource.PlayOneShot(collectable.pickupSound);
 
     }
 
@@ -114,8 +111,8 @@ public class GoblinDungeon : MonoBehaviour
         if (CarryingCrown || CarryingKey)
         {
             protectedUntil = Time.time + 2f;
-            Crown.Drop(player.transform.position);
-            Key.Drop(player.transform.position);
+            if (CarryingCrown) Crown.Drop(player.transform.position);
+            if (CarryingKey) Key.Drop(player.transform.position);
             return;
         }
         CaughtPlayer = true;

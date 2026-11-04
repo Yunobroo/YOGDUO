@@ -3,8 +3,6 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
-using static UnityEditor.Progress;
-using static UnityEngine.Rendering.DebugUI.Table;
 
 public static class DataManager
 {
@@ -12,7 +10,7 @@ public static class DataManager
 
     public static Dictionary<int, string> Levels = new Dictionary<int, string>
     {
-        { 0, "Shop" },
+        { 0, "ShopHub_0" },
         { 1, "Level_1" },
         { 2, "Level_2" }
     };
@@ -179,7 +177,7 @@ public static class DataManager
             return;
         }
 
-        SceneManager.LoadScene(level);
+        SceneManager.LoadScene(sceneName);
     }
 
     public static void ResetLevel(int levelId)
@@ -200,7 +198,6 @@ public static class DataManager
 
     public static bool CompletedLevel(int levelNr)
     {
-        var levelData = data.levels.FirstOrDefault(level => level.level == levelNr);
-        return levelData.completed;
+        return GetLevelData(levelNr)?.completed ?? false;
     }
 }

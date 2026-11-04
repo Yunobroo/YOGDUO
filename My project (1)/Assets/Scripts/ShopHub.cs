@@ -18,6 +18,7 @@ public class ShopHub : MonoBehaviour
 
     void Update()
     {
+        if (game == null) game = GoblinDungeon.Instance;
 
         if (game == null || !game.isHub) return;
 

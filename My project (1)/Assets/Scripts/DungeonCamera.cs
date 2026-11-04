@@ -29,6 +29,12 @@ public class DungeonCamera : MonoBehaviour
         // Close gameplay framing; retain enough horizontal view in narrow windows.
         view.orthographicSize = zoom * Mathf.Max(1f, (4f / 3f) / Mathf.Max(.1f, view.aspect));
         if (target == null) return;
+        if (Application.isPlaying)
+        {
+            var occlusion = GetComponent<CameraOcclusion>();
+            if (occlusion == null) occlusion = gameObject.AddComponent<CameraOcclusion>();
+            occlusion.target = target;
+        }
         Vector3 destination = target.position + offset;
         transform.position = snap || followSmoothTime <= 0
             ? destination
