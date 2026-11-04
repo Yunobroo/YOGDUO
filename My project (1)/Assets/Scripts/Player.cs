@@ -4,9 +4,9 @@ using UnityEngine.InputSystem;
 public class Player : MonoBehaviour
 {
     [Header("Movement")]
-    public float walkSpeed = 3f;
-    public float sneakSpeed = 1.6f;
-    public float sprintSpeed = 5.5f;
+    public float walkSpeed = 2.5f;
+    public float sneakSpeed = 1.3f;
+    public float sprintSpeed = 4.5f;
     public bool Hidden { get; private set; }
     public bool Sneaking { get; private set; }
     public float NoiseRadius { get; private set; }
@@ -21,12 +21,17 @@ public class Player : MonoBehaviour
     Transform movementCamera;
     bool crouchToggled, sprintToggled, exhausted;
     float stepDistance;
-    private bool movementEnabled = true;
+    Vector3 standingScale = Vector3.one;
+    Animator animator;
+    static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    static readonly int GaitRate = Animator.StringToHash("GaitRate");
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         body = transform.Find("Body");
+        if (body != null) standingScale = body.localScale;
+        if (body != null) animator = body.GetComponent<Animator>();
         Hidden = false;
         if (Camera.main != null) movementCamera = Camera.main.transform;
     }
@@ -40,28 +45,23 @@ public class Player : MonoBehaviour
             NoiseRadius = 0;
             stepDistance = 0;
             sprintToggled = false;
+            if (animator != null && animator.isActiveAndEnabled) animator.SetFloat(MoveSpeed, 0);
             return;
         }
 
-        //Movement
+        // Read stance before moving so leaving cover never takes an extra frame.
         Vector2 input = ReadMovementInput();
         bool running = UpdateMovementMode(input, game.CarryingCrown);
-        Move(input, running, game);
+        Hidden = Sneaking && game.InHidingSpot(transform.position);
+        Move(input, running, Time.deltaTime);
 
         //Sneaking
         Hidden = Sneaking && game.InHidingSpot(transform.position);
         if (body != null)
         {
-            body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);   //Shrink when sneaking
+            body.localScale = Vector3.Scale(standingScale, new Vector3(1, Sneaking ? .65f : 1, 1));
             body.gameObject.SetActive(!Hidden);                          //If completely hidden turn the body invisible
-            movementEnabled = !Hidden;                                  //If completely hidden disable movement
         }
-
-        //Update Parent Position                                        //This is to have the camera follow the player while maintaining the POV
-        gameObject.transform        //This
-            .parent.transform       //Parent
-            .position               //Parent position -> camera position
-            = transform.position;
     }
 
     Vector2 ReadMovementInput()
@@ -101,7 +101,7 @@ public class Player : MonoBehaviour
         return running;
     }
 
-    void Move(Vector2 input, bool running, GoblinDungeon game)
+    void Move(Vector2 input, bool running, float deltaTime)
     {
             // Project camera axes onto the floor: W moves up the screen, D moves right.
             Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
@@ -110,12 +110,17 @@ public class Player : MonoBehaviour
             Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
             direction = Vector3.ClampMagnitude(direction, 1);
             float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + DataManager.Data.boots * .5f : walkSpeed;
-            if(!movementEnabled) { speed = 0; }
             Vector3 before = transform.position;
-            controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
-            if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
+            controller.Move((direction * speed + Vector3.down * 4) * deltaTime);
+            if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), deltaTime * 15);
             Vector3 displacement = transform.position - before;
             displacement.y = 0;
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                float actualSpeed = deltaTime > 0 ? displacement.magnitude / deltaTime : 0;
+                animator.SetFloat(MoveSpeed, actualSpeed, .1f, deltaTime);
+                animator.SetFloat(GaitRate, Mathf.Clamp(actualSpeed / 3.5f, .4f, 1.5f));
+            }
 
         
             UpdateFootsteps(displacement, running, DataManager.Data.softShoes);

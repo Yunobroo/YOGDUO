@@ -1565,6 +1565,7 @@ GameObject:
   - component: {fileID: 5187192088904869802}
   - component: {fileID: 3543788600759237113}
   - component: {fileID: 4672308076047497655}
+  - component: {fileID: 882450040471304533}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -2622,9 +2623,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 471b0722f47df634a83f7d9c965ad751, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  walkSpeed: 3
-  sneakSpeed: 1.6
-  sprintSpeed: 5.5
+  walkSpeed: 2.5
+  sneakSpeed: 1.3
+  sprintSpeed: 4.5
 --- !u!1 &8173843013413135292
 GameObject:
   m_ObjectHideFlags: 0
@@ -3046,3 +3047,16 @@ Transform:
   - {fileID: 4652613352599391445}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &882450040471304533
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4611045536191056854}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88d414d8546047678fc0ed672d2672e3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCameraFollow
+  target: {fileID: 4652613352599391445}

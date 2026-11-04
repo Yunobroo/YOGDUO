@@ -32,10 +32,15 @@ public class SearchAndChase : MonoBehaviour
 
     void Start()
     {
-        if (target == null) target = GameObject.FindGameObjectWithTag(targetTag);
+        WorldHighlight.Add(gameObject, new Color(1f, .2f, .12f));
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         EnsureNavigation();
         if (target != null) player = target.GetComponent<Player>();
+        // The rig and character can both be tagged Player. Chase the controller,
+        // not its stationary parent or camera rig.
+        if (player == null)
+            player = GoblinDungeon.Instance != null ? GoblinDungeon.Instance.player : FindAnyObjectByType<Player>();
+        if (player != null) target = player.gameObject;
         SelectPatrolPoint();
         StartCoroutine(FOVRoutine());
     }
@@ -46,6 +51,8 @@ public class SearchAndChase : MonoBehaviour
         if (GoblinDungeon.Instance == null || !GoblinDungeon.Instance.Playing) { agent.isStopped = true; return; }
         agent.isStopped = false;
         if (RecoverCrown()) return;
+        // Lose sight immediately when the player moves behind solid cover.
+        if (CanSeeTarget) FieldOfViewCheck();
         if (CanSeeTarget)
         {
             StopLingering();
@@ -68,7 +75,7 @@ public class SearchAndChase : MonoBehaviour
             }
         }
         if (player != null && !player.Hidden && Vector3.Distance(transform.position, target.transform.position) < .85f &&
-            !Physics.Linecast(transform.position + Vector3.up * .5f, target.transform.position + Vector3.up * .5f, visionBlockMask))
+            !WorldSight.Blocked(transform.position + Vector3.up * .5f, target.transform.position + Vector3.up * .5f, transform, player.transform))
             GoblinDungeon.Instance.Caught();
     }
 
@@ -126,8 +133,8 @@ public class SearchAndChase : MonoBehaviour
         {
             heardFootstep = player.FootstepId;
             // Walls muffle footsteps; hearing works behind the guard and outside its FOV.
-            bool muffled = Physics.Linecast(transform.position + Vector3.up,
-                player.FootstepPosition + Vector3.up * .4f, visionBlockMask);
+            bool muffled = WorldSight.Blocked(transform.position + Vector3.up,
+                player.FootstepPosition + Vector3.up * .4f, transform, player.transform);
             float hearingRadius = player.FootstepRadius * (muffled ? .5f : 1f);
             if (!CanSeeTarget && Vector3.Distance(transform.position, player.FootstepPosition) < hearingRadius)
             {
@@ -152,7 +159,8 @@ public class SearchAndChase : MonoBehaviour
         Vector3 offset = target.transform.position - transform.position;
         float visibleRadius = player.Sneaking ? radius * .65f : radius;
         if (offset.magnitude > visibleRadius || Vector3.Angle(transform.forward, offset) > angle * .5f) return;
-        CanSeeTarget = !Physics.Linecast(transform.position + Vector3.up, target.transform.position + Vector3.up * .4f, visionBlockMask);
+        CanSeeTarget = !WorldSight.Blocked(transform.position + Vector3.up,
+            target.transform.position + Vector3.up * .4f, transform, player.transform);
     }
 
     void SelectPatrolPoint()
