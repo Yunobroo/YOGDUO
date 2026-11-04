@@ -123,12 +123,12 @@ public class Player : MonoBehaviour
             }
 
         
-            UpdateFootsteps(displacement, running, DataManager.Data.softShoes);
+            UpdateFootsteps(displacement, running);
     }
 
-    void UpdateFootsteps(Vector3 displacement, bool running, bool softShoes)
+    void UpdateFootsteps(Vector3 displacement, bool running)
     {
-        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : softShoes ? 1.5f : 3f;
+        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : DataManager.Data.softShoes ? 1.5f : 3f;
         if (NoiseRadius > 0)
         {
             stepDistance += displacement.magnitude;

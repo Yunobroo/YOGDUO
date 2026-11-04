@@ -16,7 +16,7 @@ public class GoblinDungeon : MonoBehaviour
     public SearchAndChase[] guards;
     public HideSpot[] hidingSpots;
     public Collectible[] collectibles;
-    public bool Playing => !CaughtPlayer && !Won && !Shopping;
+    public bool Playing => !CaughtPlayer && !Won;
     public bool CaughtPlayer { get; private set; }
     public bool Won { get; private set; }
     public Collectible Crown { get; private set; }
@@ -29,7 +29,6 @@ public class GoblinDungeon : MonoBehaviour
         : Crown != null && Crown.GuardCarrier != null ? "A guard is returning the crown!"
         : Crown != null && Crown.Dropped ? "Crown dropped - recover it before the guards!"
         : "Steal the crown, then return to the green exit";
-    public bool Shopping { get; private set; }
     public int Coins { get; private set; }
     public int Gems { get; private set; }
     public int Orbs { get; private set; }
@@ -116,11 +115,6 @@ public class GoblinDungeon : MonoBehaviour
             return;
         }
         CaughtPlayer = true;
-    }
-
-    public void SetShopping(bool shopping)
-    {
-        if (isHub) Shopping = shopping;
     }
 
     public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);

@@ -1,15 +1,19 @@
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class ShopHub : MonoBehaviour
 {
-    public HubStation[] stations;
-    HubStation nearby;
+    public string stationName;
+    public float interactionRadius = 2.4f;
+    public string dialogue = "Looking to buy something?";
     bool shopOpen, trading;
-    string dialogue = "Looking to buy something?";
     GUIStyle text, speaker, button, purse;
     GoblinDungeon game;
+    public UpgradeItem[] items = new UpgradeItem[5];
+    [SerializeField] private float offerStartY = 297f;
+    [SerializeField] private float offerSpacing = 72f;
 
     private void Awake()
     {
@@ -22,26 +26,32 @@ public class ShopHub : MonoBehaviour
 
         if (game == null || !game.isHub) return;
 
-        nearby = null;
-
-        foreach (var station in stations)
-            if (station != null && station.InRange(game.player)) { nearby = station; break; }
-
-        if (nearby == null || nearby.destination != 0) Close();
-
         bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
             || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
 
-        if (interact && nearby != null) Interact();
+        if (interact && InRange()) Interact();
 
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             if (trading) trading = false;
             else Close();
         }
-
-        game.SetShopping(shopOpen);
     }
+
+    #region Interaction Range
+    private bool InRange()
+    {
+        var playerPos = FindAnyObjectByType<Player>().transform.position;
+        Vector3 offset = playerPos - transform.position;
+        offset.y = 0;
+        return isActiveAndEnabled && offset.sqrMagnitude <= interactionRadius * interactionRadius;
+    }
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, interactionRadius);
+    }
+    #endregion
 
     void Close()
     {
@@ -51,18 +61,13 @@ public class ShopHub : MonoBehaviour
 
     void Interact()
     {
-        Debug.Log($"Interacted to go to destination: {nearby.destination}");
-        if (nearby.destination == 0)
+        Debug.Log($"Interacted with shop");
+        if (shopOpen) Close();
+        else
         {
-            if (shopOpen) Close();
-            else
-            {
-                shopOpen = true;
-                dialogue = "Looking to buy something?";
-            }
-            GoblinDungeon.Instance.SetShopping(shopOpen);
+            shopOpen = true;
+            dialogue = "Looking to buy something?";
         }
-        else DataManager.EnterLevel((int)nearby.destination);
     }
 
     void Styles()
@@ -99,17 +104,6 @@ public class ShopHub : MonoBehaviour
         {
             GUI.Label(new Rect(1020, 24, 230, 34), DataManager.Data.bank + " coins", purse);
             if (shopOpen) DrawConversation();
-            else if (nearby != null)
-            {
-                bool locked = !DataManager.CompletedLevel(nearby.destination--);
-                if(nearby.destination == 1) locked = false; //Don't lock level 1
-                string action = nearby.destination == 0 ? "Talk"
-                    : nearby.destination == 1 ? "Enter dungeon"
-                    : locked ? "Vault locked" : "Enter royal vault";
-                string key = Gamepad.current != null ? "A / Cross" : "E";
-                GUI.enabled = !locked;
-                if (GUI.Button(new Rect(470, 638, 340, 48), locked ? action : key + "  " + action, button)) Interact();
-            }
         }
         finally { GUI.matrix = oldMatrix; GUI.enabled = oldEnabled; }
     }
@@ -119,12 +113,8 @@ public class ShopHub : MonoBehaviour
         if (trading)
         {
             Panel(new Rect(350, 275, 580, 246));
-            Offer(297, "Boots", DataManager.Data.boots + "/2", 5, DataManager.Data.boots >= 2,
-                "These will put a little speed in your step.", BuyBoots);
-            Offer(369, "Soft soles", DataManager.Data.softShoes ? "Owned" : "", 4, DataManager.Data.softShoes,
-                "Quieter steps. Don't go running in them, though.", BuySoftShoes);
-            Offer(441, "Endurance", DataManager.Data.stamina + "/2", 6, DataManager.Data.stamina >= 2,
-                "You should be able to run a little longer now.", BuyStamina);
+
+            DrawUpgradeOffers();
         }
         Panel(new Rect(230, 544, 820, 152));
         GUI.Label(new Rect(254, 559, 740, 24), "Fence", speaker);
@@ -134,46 +124,88 @@ public class ShopHub : MonoBehaviour
             dialogue = DataManager.Data.levels.Any(level => level.completed == false) ? "Still plenty of gold in those vaults. Help yourself."
                 : DataManager.CompletedLevel(1) ? "The royal vault's open. Gate on your right."
                 : "Bring back the dungeon crown. Then I'll open the royal vault.";
+        if (GUI.Button(new Rect(654, 643, 180, 34), "I need another chance! (Wipe save)", button)) DataManager.ResetAllProgress();
         if (GUI.Button(new Rect(844, 643, 180, 34), "Goodbye.", button))
         {
             Close();
-            GoblinDungeon.Instance.SetShopping(false);
+            shopOpen = false;
         }
     }
 
-    void Offer(float y, string name, string rank, int cost, bool owned, string response, System.Func<bool> buy)
+    void DrawUpgradeOffers()
     {
-        GUI.Label(new Rect(374, y + 9, 285, 30), name + (rank.Length > 0 ? "  " + rank : ""), text);
-        GUI.enabled = !owned && DataManager.Data.bank >= cost;
-        if (GUI.Button(new Rect(714, y, 190, 48), owned ? "Owned" : cost + " coins", button))
-            dialogue = buy() ? response : "Come back with a few more coins.";
-        GUI.enabled = true;
+        for (int i = 0; i < items.Length; i++)
+        {
+            float y = offerStartY + i * offerSpacing;
+
+            UpgradeItem item = items[i];
+
+            Offer(y, item, false);
+        }
     }
 
-    public bool BuyBoots()
+    void Offer(float y, UpgradeItem item, bool owned)
     {
-        if (DataManager.Data.bank < 5 || DataManager.Data.boots >= 2) return false;
-        DataManager.Data.bank -= 5;
-        DataManager.Data.boots++;
-        DataManager.Save();
-        return true;
+
+        var itemAvailability = ItemAvailable(item);
+        var buttonText = $"{item.cost} coins";
+        var descText = new StringBuilder($"{item.name} | Lvl. {item.Owned()} -> ");
+        if (itemAvailability == 2) 
+        {
+            descText.Append("Max level");
+        }
+        else
+        {
+            descText.Append($"Lvl. {item.Owned() + 1}");
+        }
+
+
+            GUI.Label(
+            new Rect(374, y + 9, 285, 30),
+            descText.ToString(),
+            text);
+
+        bool previousEnabled = GUI.enabled;
+
+
+        switch (itemAvailability){
+            case 0:
+                GUI.enabled = true;
+                break;
+            case 1:
+                GUI.enabled = false;;
+                break;
+            case 2:
+                GUI.enabled = false;
+                buttonText = "Max Level";
+                break ;
+        }
+
+        if (GUI.Button(
+            new Rect(714, y, 190, 48),
+            buttonText,
+            button))
+        {
+            dialogue = "Thank you for your purchase!";
+            BuyItem(item);
+        }
+
+        GUI.enabled = previousEnabled;
     }
 
-    public bool BuySoftShoes()
+    public void BuyItem(UpgradeItem item)
     {
-        if (DataManager.Data.bank < 4 || DataManager.Data.softShoes) return false;
-        DataManager.Data.bank -= 4;
-        DataManager.Data.softShoes = true;
+        DataManager.Data.bank -= item.cost;
+        item.OnBuy();
         DataManager.Save();
-        return true;
     }
 
-    public bool BuyStamina()
+    private int ItemAvailable(UpgradeItem item)
     {
-        if (DataManager.Data.bank < 6 || DataManager.Data.stamina >= 2) return false;
-        DataManager.Data.bank -= 6;
-        DataManager.Data.stamina++;
-        DataManager.Save();
-        return true;
+
+        if (item.Owned() >= item.maxLevel) return 2;// "Already reached max level!" --- Put this first in the code
+        if (DataManager.Data.bank < item.cost) return 1;// "Come back with a few more gold"
+
+        return 0; //Success condition
     }
 }
