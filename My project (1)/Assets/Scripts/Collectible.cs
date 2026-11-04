@@ -32,17 +32,22 @@ public class Collectible : MonoBehaviour
             id = Guid.NewGuid().ToString();
         }
 
-
-        if (DataManager.IsCollected(game.levelNumber, this))
-        {
-            gameObject.SetActive(false);
-        }
-
         HomePosition = transform.position;
         homeParent = transform.parent;
         homeRotation = transform.rotation;
         homeScale = transform.localScale;
         if (visual != null) visualPosition = visual.localPosition;
+
+        if (kind == Kind.Crown || kind == Kind.Key)             //Don't disable crowns or keys
+        {
+            return; 
+        }
+
+        if (DataManager.IsCollected(game.levelNumber, this))
+        {
+            Debug.Log($"Deactivating {kind} {id}");
+            gameObject.SetActive(false);
+        }
     }
 
     void Update()
