@@ -63,7 +63,8 @@ public static class DataManager
                 {
                     level = level.Key,
                     name = level.Value,
-                    collectedCollectables = new List<CollectedItem>(),
+                    collectedCollectables = new List<ItemData>(),
+                    totalCollectables = new List<ItemData>(),
                 };
 
                 data.levels.Add(levelData);
@@ -74,7 +75,7 @@ public static class DataManager
             if (levelData.collectedCollectables == null)
             {
                 levelData.collectedCollectables =
-                    new List<CollectedItem>();
+                    new List<ItemData>();
 
                 changed = true;
             }
@@ -140,7 +141,7 @@ public static class DataManager
         if (levelData.collectedCollectables.Any(data => data.id == collectible.Id))
             return;
 
-        levelData.collectedCollectables.Add(new CollectedItem { id = collectible.Id, kind = collectible.kind });
+        levelData.collectedCollectables.Add(new ItemData { id = collectible.Id, kind = collectible.kind });
         Debug.Log($"Collect {collectible.kind} {collectible.Id}");
     }
 
@@ -199,5 +200,11 @@ public static class DataManager
     public static bool CompletedLevel(int levelNr)
     {
         return GetLevelData(levelNr)?.completed ?? false;
+    }
+
+    public static void AddCollectable(int level, Collectible collectible)
+    {
+        GetLevelData(level).totalCollectables.Add(new ItemData { id = collectible.Id, kind = collectible.kind });
+        Save();
     }
 }

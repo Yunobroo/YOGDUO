@@ -68,6 +68,7 @@ public class GoblinHUD : MonoBehaviour
             float side = Mathf.Min(Screen.height > 1000 ? 320 : 280, (w - margin * 3) * .5f);
             float controlsX = w - margin - side;
             var player = game.player;
+            var levelData = DataManager.GetLevelData(game.levelNumber);
 
             Panel(new Rect(margin, margin, side, 100));
 
@@ -84,15 +85,15 @@ public class GoblinHUD : MonoBehaviour
             
             GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26), 
                 $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)+levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)}" +
-                $" / {game.TotalGems}", title);
+                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Gem)}", title);
            
             GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26), 
                 $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar) + levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar)}" +
-                $" / {game.TotalBars}", title);
+                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Bar)}", title);
             
             GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26), 
                 $"{game.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)+levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)}" +
-                $" / {game.TotalOrbs}"   , title);
+                $" / 1"   , title);
 
             Fill(new Rect(margin + 12, margin + 63, side - 24, 1), new Color(.3f, .32f, .32f, .6f));
 

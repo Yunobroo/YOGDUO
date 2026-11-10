@@ -36,10 +36,6 @@ public class GoblinDungeon : MonoBehaviour
 
     public int Bars { get; private set; }
     public int TotalCoins { get; private set; }
-    public int TotalGems { get; private set; }
-    public int TotalOrbs { get; private set; }
-
-    public int TotalBars { get; private set; }
 
     public List<Collectible> collectedCollectables = new List<Collectible>();
 
@@ -51,42 +47,35 @@ public class GoblinDungeon : MonoBehaviour
     void Awake()
     {
         Instance = this;
-        // Resolve the actual scene objects; old Inspector arrays can contain duplicate entries.
         if (player == null) player = FindAnyObjectByType<Player>();
         guards = FindObjectsByType<SearchAndChase>();
         hidingSpots = FindObjectsByType<HideSpot>();
         collectibles = FindObjectsByType<Collectible>();
+        InitializeCollectables();
+    }
+
+    private void InitializeCollectables()
+    {
         var counted = new System.Collections.Generic.HashSet<Collectible>();
+
+        var data = DataManager.GetLevelData(levelNumber);
+
+        bool populateData = data.totalCollectables.Count == 0;                          //If the save data for this level hasn't got the collectables yet populate the data
 
         foreach (var item in collectibles)
         {
-            if (item == null || !counted.Add(item)) continue;
-            Debug.Log($"Level {levelNumber} item check: {item.kind} {item.Id} | Collected: {DataManager.IsCollected(levelNumber, item)}");
+            if (item == null || !counted.Add(item)) continue;                           //Make sure there is an item and it's not a duplicate
 
-            switch (item.kind)
-            {
-                case Collectible.Kind.Coin:
-                    TotalCoins++; break;
-                case Collectible.Kind.Gem:
-                    TotalGems++; break;
-                case Collectible.Kind.Orb:
-                    TotalOrbs++; 
-                    break;
-                case Collectible.Kind.Crown:
-                    Crown = item; break;
-                case Collectible.Kind.Key:
-                    Key = item; break;
-                case Collectible.Kind.Bar:
-                    TotalBars++; break;
-            }
+            Debug.Log($"Level {levelNumber} item check: {item.kind} {item.Id} " +       //Log the item we're working with  
+                      $"| Collected: {DataManager.IsCollected(levelNumber, item)}");
 
+            if (item.kind == Kind.Coin) TotalCoins++;                                   //If it's a coin track it for gui, because save data does not care about coins this does it
 
-            if (item.kind == Kind.Crown || item.kind == Kind.Key)             //Don't disable crowns or keys
-            {
-                continue;
-            }
+            if (populateData) DataManager.AddCollectable(levelNumber, item);            //If we're populating the save data add the item to the total collectables for this level
 
-            if (DataManager.IsCollected(levelNumber, item))
+            if (item.kind == Kind.Crown || item.kind == Kind.Key) continue;             //Don't disable crowns or keys
+
+            if (DataManager.IsCollected(levelNumber, item))                             //Disable if it has been collected before
             {
                 Debug.Log($"Deactivating {item.kind} {item.Id}");
                 item.gameObject.SetActive(false);

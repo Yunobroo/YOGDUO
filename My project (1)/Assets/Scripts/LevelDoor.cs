@@ -88,25 +88,21 @@ public class LevelDoor : MonoBehaviour
 
             GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26),
                 $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)}" +
-                //$" / {levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)}"
-                " / 31"
+                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Gem)}"
                 , title);
 
             GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26),
                 $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar)}" +
-                //$" / {levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar)}"
-                " / 6"
+                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Bar)}"
                 , title);
 
             GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26),
                 $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)}" +
-                //$" / {levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)}"
-                " / 1"
+                $" / 1"
                 , title);
 
             GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26),
                 $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Crown)}" +
-                //$" / {levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Crown)}"
                 " / 1"
                 , title);
 
