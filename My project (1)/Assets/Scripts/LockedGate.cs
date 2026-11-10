@@ -7,6 +7,13 @@ public class LockedGate : MonoBehaviour
     {
         game = GameObject.FindGameObjectWithTag("GameController").GetComponent<GoblinDungeon>();
     }
+
+    private void Update()
+    {
+        if (game.Crown != null && game.Crown.GuardCarrier != null)
+            gameObject.SetActive(false);
+    }
+
     private void OnTriggerEnter(Collider other)
     {
         Debug.Log("Something entered the door trigger!");
@@ -18,7 +25,7 @@ public class LockedGate : MonoBehaviour
         if (other.CompareTag("Player") && game.CarryingKey)
         {
             Debug.Log("Player has key! Opening door.");
-            game.Key.Drop(other.transform.position);
+            game.Key.Consume();
             gameObject.SetActive(false);
         }
     }

@@ -77,7 +77,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c5e7b5ad3b76f6e4da224e14bca88a10, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Collectible
-  kind: 2
+  kind: 3
   visual: {fileID: 6177464644979918119}
   pickupRadius: 0.8
   wallMask:

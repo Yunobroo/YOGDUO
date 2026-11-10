@@ -73,7 +73,17 @@ public class GoblinDungeon : MonoBehaviour
 
             if (populateData) DataManager.AddCollectable(levelNumber, item);            //If we're populating the save data add the item to the total collectables for this level
 
-            if (item.kind == Kind.Crown || item.kind == Kind.Key) continue;             //Don't disable crowns or keys
+            if (item.kind == Kind.Crown)
+            {
+                Crown = item;
+                continue;
+            }
+
+            if (item.kind == Kind.Key)
+            {
+                Key = item;
+                continue;
+            }
 
             if (DataManager.IsCollected(levelNumber, item))                             //Disable if it has been collected before
             {

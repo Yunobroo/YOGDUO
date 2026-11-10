@@ -8,6 +8,10 @@ public class SearchAndChase : MonoBehaviour
     [Header("FOV Size")]
     [Range(0, 360)] public float angle = 85;
     public float radius = 7;
+    [Tooltip("Noticed at this range regardless of facing (60% of it when sneaking).")]
+    public float closeRange = 1.5f;
+    [Tooltip("Seconds a chasing guard keeps tracking the player after losing sight.")]
+    public float chaseMemory = 1.2f;
     [Header("Masks")]
     public GameObject target;
     public string targetTag = "Player";
@@ -24,8 +28,11 @@ public class SearchAndChase : MonoBehaviour
     enum State { Patrolling, Chasing, LastKnownLocation, Lingering, RecoveringCrown, ReturningCrown }
     State state;
     Vector3 currentDestination;
+    Vector3 requestedDestination;
+    bool hasRequestedDestination;
     int patrolIndex;
     float searchTime;
+    float lastSeenTime = float.NegativeInfinity;
     Player player;
     int heardFootstep;
     Coroutine lingerRoutine;
@@ -53,7 +60,11 @@ public class SearchAndChase : MonoBehaviour
         if (RecoverCrown()) return;
         // Lose sight immediately when the player moves behind solid cover.
         if (CanSeeTarget) FieldOfViewCheck();
-        if (CanSeeTarget)
+        if (CanSeeTarget) lastSeenTime = Time.time;
+        // Brief sight breaks (a pillar, a sharp turn) don't end a chase; hiding does.
+        bool stillOnTrail = state == State.Chasing && player != null && !player.Hidden &&
+                            Time.time - lastSeenTime < chaseMemory;
+        if (CanSeeTarget || stillOnTrail)
         {
             StopLingering();
             state = State.Chasing;
@@ -63,7 +74,7 @@ public class SearchAndChase : MonoBehaviour
         else if (state == State.Chasing) state = State.LastKnownLocation;
         ListenForFootsteps();
         agent.speed = state == State.Chasing ? 4.1f : 2f;
-        agent.SetDestination(currentDestination);
+        SetDestinationIfChanged(currentDestination);
         if (!agent.pathPending && agent.remainingDistance <= destinationTolerance)
         {
             if (state == State.Patrolling) SelectPatrolPoint();
@@ -90,7 +101,10 @@ public class SearchAndChase : MonoBehaviour
     {
         var crown = GoblinDungeon.Instance.Crown;
         if (crown == null) return false;
-        if (crown.GuardCarrier != this && !crown.Dropped)
+        // Grab a dropped crown when passing over it, even mid-chase.
+        if (crown.Dropped) crown.TryGuardPickup(this);
+        // Only the carrier ignores the player. Anyone who can see the thief keeps chasing.
+        if (crown.GuardCarrier != this && (!crown.Dropped || CanSeeTarget))
         {
             if (state == State.RecoveringCrown || state == State.ReturningCrown)
             {
@@ -101,7 +115,6 @@ public class SearchAndChase : MonoBehaviour
         }
 
         StopLingering();
-        if (crown.Dropped) crown.TryGuardPickup(this);
         bool returning = crown.GuardCarrier == this;
         state = returning ? State.ReturningCrown : State.RecoveringCrown;
         Vector3 destination = returning ? crown.HomePosition : crown.transform.position;
@@ -109,15 +122,40 @@ public class SearchAndChase : MonoBehaviour
         if (NavMesh.SamplePosition(destination, out var hit, 2f, agent.areaMask)) destination = hit.position;
         currentDestination = destination;
         agent.speed = 2f;
-        agent.SetDestination(destination);
-        if (returning && !agent.pathPending && agent.pathStatus == NavMeshPathStatus.PathComplete &&
-            agent.remainingDistance <= destinationTolerance && Vector3.Distance(transform.position, destination) <= 1f)
+        SetDestinationIfChanged(destination);
+        if (returning && !agent.pathPending && agent.remainingDistance <= destinationTolerance)
         {
+            bool reachedHome = agent.pathStatus == NavMeshPathStatus.PathComplete &&
+                               Vector3.Distance(transform.position, destination) <= 1f;
+            // If the NavMesh can't reach the pedestal (e.g. a doorway too narrow for the baked
+            // agent radius), the guard stops at the closest reachable point. Put the crown
+            // back from there instead of carrying it forever.
+            bool reachedClosestPoint = agent.pathStatus != NavMeshPathStatus.PathComplete;
+            if (!reachedHome && !reachedClosestPoint) return true;
             crown.ReturnHome(this);
             state = State.Patrolling;
             SelectPatrolPoint();
         }
         return true;
+    }
+
+    void SetDestinationIfChanged(Vector3 destination)
+    {
+        if (hasRequestedDestination &&
+            (requestedDestination - destination).sqrMagnitude <= .01f &&
+            !agent.isPathStale)
+            return;
+
+        if (!agent.SetDestination(destination))
+        {
+            requestedDestination = destination;
+            hasRequestedDestination = true;
+            Debug.LogWarning($"{name} could not set a navigation destination at {destination}.", this);
+            return;
+        }
+
+        requestedDestination = destination;
+        hasRequestedDestination = true;
     }
 
     void StopLingering()
@@ -158,9 +196,18 @@ public class SearchAndChase : MonoBehaviour
         if (target == null || player == null || player.Hidden) return;
         Vector3 offset = target.transform.position - transform.position;
         float visibleRadius = player.Sneaking ? radius * .65f : radius;
-        if (offset.magnitude > visibleRadius || Vector3.Angle(transform.forward, offset) > angle * .5f) return;
+        float distance = offset.magnitude;
+        if (distance > visibleRadius) return;
+        // Mid-chase the guard is locked on, so the cone no longer applies; up close it senses you.
+        bool inView = state == State.Chasing ||
+                      distance <= (player.Sneaking ? closeRange * .6f : closeRange) ||
+                      Vector3.Angle(transform.forward, offset) <= angle * .5f;
+        if (!inView) return;
+        // Aim at the player's chest so floor edges and low clutter don't break sight.
+        // Crouching lowers the aim point, so low cover only hides a sneaking player.
+        float aimHeight = player.Sneaking ? .55f : .9f;
         CanSeeTarget = !WorldSight.Blocked(transform.position + Vector3.up,
-            target.transform.position + Vector3.up * .4f, transform, player.transform);
+            target.transform.position + Vector3.up * aimHeight, transform, player.transform);
     }
 
     void SelectPatrolPoint()

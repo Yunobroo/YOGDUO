@@ -89,6 +89,16 @@ public class Collectible : MonoBehaviour
         RestoreWorldPose(position);
     }
 
+    public void Consume()
+    {
+        if (!PlayerCarrying) return;
+        PlayerCarrying = false;
+        Dropped = false;
+        collected = true;
+        transform.SetParent(homeParent, true);
+        gameObject.SetActive(false);
+    }
+
     public bool TryGuardPickup(SearchAndChase guard)
     {
         if (!Dropped ||                 //If not dropped
