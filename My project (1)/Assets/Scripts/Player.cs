@@ -95,7 +95,11 @@ public class Player : MonoBehaviour
         if (input.sqrMagnitude == 0 || Sneaking || carryingCrown) sprintToggled = false;
         bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
-        bool running = sprintHeld && !carryingCrown && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
+        bool running = sprintHeld && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
+        if(carryingCrown && !DataManager.Data.sprintWhileCarrying)
+        {
+            running = false;
+        }
         Stamina = Mathf.Clamp01(Stamina + (running ? -StaminaDrain : .2f) * Time.deltaTime);
         if (Stamina <= 0) exhausted = true;
         return running;
@@ -123,12 +127,12 @@ public class Player : MonoBehaviour
             }
 
         
-            UpdateFootsteps(displacement, running, DataManager.Data.softShoes);
+            UpdateFootsteps(displacement, running);
     }
 
-    void UpdateFootsteps(Vector3 displacement, bool running, bool softShoes)
+    void UpdateFootsteps(Vector3 displacement, bool running)
     {
-        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : softShoes ? 1.5f : 3f;
+        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : DataManager.Data.softShoes ? 1.5f : 3f;
         if (NoiseRadius > 0)
         {
             stepDistance += displacement.magnitude;

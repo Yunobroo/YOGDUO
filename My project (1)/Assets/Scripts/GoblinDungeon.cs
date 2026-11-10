@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using static Collectible;
 
 // Scene references and run state only. Layout, models and navigation are saved assets.
 public class GoblinDungeon : MonoBehaviour
@@ -16,7 +17,7 @@ public class GoblinDungeon : MonoBehaviour
     public SearchAndChase[] guards;
     public HideSpot[] hidingSpots;
     public Collectible[] collectibles;
-    public bool Playing => !CaughtPlayer && !Won && !Shopping;
+    public bool Playing => !CaughtPlayer && !Won;
     public bool CaughtPlayer { get; private set; }
     public bool Won { get; private set; }
     public Collectible Crown { get; private set; }
@@ -29,17 +30,12 @@ public class GoblinDungeon : MonoBehaviour
         : Crown != null && Crown.GuardCarrier != null ? "A guard is returning the crown!"
         : Crown != null && Crown.Dropped ? "Crown dropped - recover it before the guards!"
         : "Steal the crown, then return to the green exit";
-    public bool Shopping { get; private set; }
     public int Coins { get; private set; }
     public int Gems { get; private set; }
     public int Orbs { get; private set; }
 
     public int Bars { get; private set; }
     public int TotalCoins { get; private set; }
-    public int TotalGems { get; private set; }
-    public int TotalOrbs { get; private set; }
-
-    public int TotalBars { get; private set; }
 
     public List<Collectible> collectedCollectables = new List<Collectible>();
 
@@ -51,33 +47,38 @@ public class GoblinDungeon : MonoBehaviour
     void Awake()
     {
         Instance = this;
-        // Resolve the actual scene objects; old Inspector arrays can contain duplicate entries.
         if (player == null) player = FindAnyObjectByType<Player>();
         guards = FindObjectsByType<SearchAndChase>();
         hidingSpots = FindObjectsByType<HideSpot>();
         collectibles = FindObjectsByType<Collectible>();
+        InitializeCollectables();
+    }
+
+    private void InitializeCollectables()
+    {
         var counted = new System.Collections.Generic.HashSet<Collectible>();
+
+        var data = DataManager.GetLevelData(levelNumber);
+
+        bool populateData = data.totalCollectables.Count == 0;                          //If the save data for this level hasn't got the collectables yet populate the data
 
         foreach (var item in collectibles)
         {
-            if (item == null || !counted.Add(item)) continue;
-            Debug.Log($"Level {levelNumber} item check: {item.kind} {item.Id} | Collected: {DataManager.IsCollected(levelNumber, item)}");
+            if (item == null || !counted.Add(item)) continue;                           //Make sure there is an item and it's not a duplicate
 
-            switch (item.kind)
+            Debug.Log($"Level {levelNumber} item check: {item.kind} {item.Id} " +       //Log the item we're working with  
+                      $"| Collected: {DataManager.IsCollected(levelNumber, item)}");
+
+            if (item.kind == Kind.Coin) TotalCoins++;                                   //If it's a coin track it for gui, because save data does not care about coins this does it
+
+            if (populateData) DataManager.AddCollectable(levelNumber, item);            //If we're populating the save data add the item to the total collectables for this level
+
+            if (item.kind == Kind.Crown || item.kind == Kind.Key) continue;             //Don't disable crowns or keys
+
+            if (DataManager.IsCollected(levelNumber, item))                             //Disable if it has been collected before
             {
-                case Collectible.Kind.Coin:
-                    TotalCoins++; break;
-                case Collectible.Kind.Gem:
-                    TotalGems++; break;
-                case Collectible.Kind.Orb:
-                    TotalOrbs++; 
-                    break;
-                case Collectible.Kind.Crown:
-                    Crown = item; break;
-                case Collectible.Kind.Key:
-                    Key = item; break;
-                case Collectible.Kind.Bar:
-                    TotalBars++; break;
+                Debug.Log($"Deactivating {item.kind} {item.Id}");
+                item.gameObject.SetActive(false);
             }
         }
     }
@@ -116,11 +117,6 @@ public class GoblinDungeon : MonoBehaviour
             return;
         }
         CaughtPlayer = true;
-    }
-
-    public void SetShopping(bool shopping)
-    {
-        if (isHub) Shopping = shopping;
     }
 
     public void Restart() => SceneManager.LoadScene(SceneManager.GetActiveScene().name);

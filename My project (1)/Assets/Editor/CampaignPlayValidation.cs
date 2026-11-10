@@ -75,14 +75,14 @@ public static class CampaignPlayValidation
             }
             else if (stage == 3 && game.isHub)
             {
-                if (UnityEngine.Object.FindAnyObjectByType<ShopHub>() == null) throw new InvalidOperationException("Hub failed to load");
-                var shop = UnityEngine.Object.FindAnyObjectByType<ShopHub>();
-                Move(game.player, shop.stations[0].transform.position);
-                if (!shop.stations[0].InRange(game.player)) throw new InvalidOperationException("Merchant cannot be approached");
-                Directory.CreateDirectory("Logs");
-                File.WriteAllText("Logs/CampaignPlayValidationReport.txt",
-                    "PASS: Level 2 runs in Play mode; crown pickup, hit/drop, guard navigation, visible guard carry, physical return to pedestal, hub scene transition, and merchant access succeeded.\n");
-                Finish(0);
+                //if (UnityEngine.Object.FindAnyObjectByType<ShopHub>() == null) throw new InvalidOperationException("Hub failed to load");
+                //var shop = UnityEngine.Object.FindAnyObjectByType<ShopHub>();
+                //Move(game.player, shop.stations[0].transform.position);
+                //if (!shop.stations[0].InRange(game.player)) throw new InvalidOperationException("Merchant cannot be approached");
+                //Directory.CreateDirectory("Logs");
+                //File.WriteAllText("Logs/CampaignPlayValidationReport.txt",
+                //    "PASS: Level 2 runs in Play mode; crown pickup, hit/drop, guard navigation, visible guard carry, physical return to pedestal, hub scene transition, and merchant access succeeded.\n");
+                //Finish(0);
             }
         }
         catch (Exception error)

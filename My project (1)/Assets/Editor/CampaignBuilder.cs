@@ -157,12 +157,12 @@ public static class CampaignBuilder
                 Cube("Timber support", new Vector3(x, 1, z), new Vector3(.6f, 2, .6f), wood, environment);
         var game = NewGame(true, 1, "The Goblin's Rest", new Vector3(0, .05f, -6));
         var hub = game.gameObject.AddComponent<ShopHub>();
-        hub.stations = new[]
-        {
-            Station("Browse the fence's wares", 0, new Vector3(0, 0, 4)),
-            Station("Enter Level 1 / The Dungeon", 1, new Vector3(-8, 0, -1)),
-            Station("Enter Level 2 / The Royal Vault", 2, new Vector3(8, 0, -1))
-        };
+        //hub.stations = new[]
+        //{
+        //    Station("Browse the fence's wares", 0, new Vector3(0, 0, 4)),
+        //    Station("Enter Level 1 / The Dungeon", 1, new Vector3(-8, 0, -1)),
+        //    Station("Enter Level 2 / The Royal Vault", 2, new Vector3(8, 0, -1))
+        //};
         Gate("THE DUNGEON", new Vector3(-8, 0, 0), green);
         Gate("ROYAL VAULT", new Vector3(8, 0, 0), blue);
         WireScene(game);
