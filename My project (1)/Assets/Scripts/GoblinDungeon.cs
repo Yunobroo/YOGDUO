@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using static Collectible;
 
 // Scene references and run state only. Layout, models and navigation are saved assets.
 public class GoblinDungeon : MonoBehaviour
@@ -77,6 +78,18 @@ public class GoblinDungeon : MonoBehaviour
                     Key = item; break;
                 case Collectible.Kind.Bar:
                     TotalBars++; break;
+            }
+
+
+            if (item.kind == Kind.Crown || item.kind == Kind.Key)             //Don't disable crowns or keys
+            {
+                continue;
+            }
+
+            if (DataManager.IsCollected(levelNumber, item))
+            {
+                Debug.Log($"Deactivating {item.kind} {item.Id}");
+                item.gameObject.SetActive(false);
             }
         }
     }

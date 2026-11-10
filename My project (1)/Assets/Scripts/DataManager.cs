@@ -63,7 +63,7 @@ public static class DataManager
                 {
                     level = level.Key,
                     name = level.Value,
-                    collectedCollectables = new List<CollectedItem>()
+                    collectedCollectables = new List<CollectedItem>(),
                 };
 
                 data.levels.Add(levelData);
