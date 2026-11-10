@@ -81,6 +81,12 @@ public class LevelDoor : MonoBehaviour
 
             float columnWidth = (side - 24) / 4f;
 
+            if (!DataManager.Levels.ContainsKey(level))
+            {
+                GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Coming Soon!");
+                return;
+            }
+
             GUI.Label(new Rect(margin + 12, margin + 8, columnWidth, 22), "Gems", hint);
             GUI.Label(new Rect(margin + 12 + columnWidth, margin + 8, columnWidth, 22), "Gold Bars", hint);
             GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Orb", hint);
