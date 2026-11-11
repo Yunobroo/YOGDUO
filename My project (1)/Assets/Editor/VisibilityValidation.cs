@@ -38,7 +38,7 @@ public static class VisibilityValidation
         Material original = null;
         try
         {
-            foreach (string path in new[] { "Visibility/Outline", "Visibility/OccluderFade" })
+            foreach (string path in new[] { "Visibility/Outline", "Visibility/OccluderFade", "Visibility/PeepholeLit", "Visibility/PeepholeSimple", "Visibility/XRay" })
             {
                 var shader = Resources.Load<Shader>(path);
                 Check(shader != null && !ShaderUtil.ShaderHasError(shader), path + " shader imported without errors", report);

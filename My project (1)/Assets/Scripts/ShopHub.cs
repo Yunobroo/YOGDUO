@@ -1,7 +1,7 @@
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using static DungeonUI;
 
 public class ShopHub : MonoBehaviour
 {
@@ -9,10 +9,10 @@ public class ShopHub : MonoBehaviour
     public float interactionRadius = 2.4f;
     public string dialogue = "Looking to buy something?";
     bool shopOpen, trading;
-    GUIStyle text, speaker, button, purse;
+    DungeonUI.Skin skin;
     GoblinDungeon game;
     public UpgradeItem[] items = new UpgradeItem[5];
-    [SerializeField] private float offerStartY = 100f;
+    [Tooltip("Height of each row in the wares panel (1280x720 canvas units).")]
     [SerializeField] private float offerSpacing = 72f;
 
     private void Awake()
@@ -70,30 +70,13 @@ public class ShopHub : MonoBehaviour
         }
     }
 
-    void Styles()
-    {
-        if (text != null) return;
-        text = new GUIStyle(GUI.skin.label) { fontSize = 20, wordWrap = true };
-        text.normal.textColor = new Color(.9f, .88f, .82f);
-        speaker = new GUIStyle(text) { fontSize = 16, fontStyle = FontStyle.Bold };
-        speaker.normal.textColor = new Color(.83f, .69f, .43f);
-        button = new GUIStyle(GUI.skin.button) { fontSize = 18 };
-        purse = new GUIStyle(text) { alignment = TextAnchor.MiddleRight, fontSize = 18 };
-    }
-
-    static void Panel(Rect rect)
-    {
-        Color old = GUI.color;
-        GUI.color = new Color(.07f, .065f, .055f, .94f);
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = old;
-    }
-
+    // Drawn on a fixed 1280x720 canvas that GUI.matrix scales to the screen.
     void OnGUI()
     {
         if (GoblinDungeon.Instance == null || !GoblinDungeon.Instance.isHub) return;
-        Styles();
+        skin = DungeonUI.Fixed();
         Matrix4x4 oldMatrix = GUI.matrix;
+        Color oldColor = GUI.color;
         bool oldEnabled = GUI.enabled;
         Rect safe = Screen.safeArea;
         float scale = Mathf.Min(safe.width / 1280f, safe.height / 720f);
@@ -102,99 +85,95 @@ public class ShopHub : MonoBehaviour
             Screen.height - safe.yMax + (safe.height - 720 * scale) / 2, 0), Quaternion.identity, Vector3.one * scale);
         try
         {
-            GUI.Label(new Rect(1020, 24, 230, 34), DataManager.Data.bank + " coins", purse);
+            DrawPurse();
             if (shopOpen) DrawConversation();
+            else if (InRange())
+                Prompt(1280, 640, Gamepad.current != null ? "A" : "E", "Talk to the Fence", skin, Torch);
         }
-        finally { GUI.matrix = oldMatrix; GUI.enabled = oldEnabled; }
+        finally { GUI.matrix = oldMatrix; GUI.color = oldColor; GUI.enabled = oldEnabled; }
+    }
+
+    void DrawPurse()
+    {
+        var r = new Rect(1080, 20, 180, 44);
+        Plaque(r, 1, .92f);
+        Fill(new Rect(r.x + 16, r.y + 18, 9, 9), CoinColor);
+        Text(new Rect(r.x + 34, r.y + 11, 130, 22), DataManager.Data.bank + " coins", skin.heading, CoinColor);
     }
 
     void DrawConversation()
     {
-        if (trading)
-        {
-            Panel(new Rect(350, 275, 580, 246));
+        if (trading) DrawUpgradeOffers();
 
-            DrawUpgradeOffers();
-        }
-        Panel(new Rect(230, 544, 820, 152));
-        GUI.Label(new Rect(254, 559, 740, 24), "Fence", speaker);
-        GUI.Label(new Rect(254, 593, 740, 40), dialogue, text);
-        if (GUI.Button(new Rect(254, 643, 180, 34), trading ? "Back" : "Show me.", button)) trading = !trading;
-        if (GUI.Button(new Rect(454, 643, 180, 34), "Any work?", button))
+        var box = new Rect(230, 536, 820, 164);
+        Plaque(box, 1, .95f, Torch);
+        Text(new Rect(256, 550, 400, 24), "THE FENCE", skin.heading, Torch);
+        Fill(new Rect(256, 576, 120, 1), A(Bronze, .8f));
+        Text(new Rect(256, 586, 770, 48), dialogue, skin.body, Parchment);
+
+        GUI.color = Color.white;
+        float y = 646, bw = 180, bh = 38;
+        if (GUI.Button(new Rect(256, y, bw, bh), trading ? "Back" : "Show me your wares", skin.button)) trading = !trading;
+        if (GUI.Button(new Rect(452, y, bw, bh), "Any work?", skin.button))
             dialogue = DataManager.Data.levels.Any(level => level.completed == false) ? "Still plenty of gold in those vaults. Help yourself."
                 : DataManager.CompletedLevel(1) ? "The royal vault's open. Gate on your right."
                 : "Bring back the dungeon crown. Then I'll open the royal vault.";
-        if (GUI.Button(new Rect(654, 643, 180, 34), "I need another chance! (Wipe save)", button)) DataManager.ResetAllProgress();
-        if (GUI.Button(new Rect(844, 643, 180, 34), "Goodbye.", button))
-        {
-            Close();
-            shopOpen = false;
-        }
+        if (GUI.Button(new Rect(648, y, bw, bh), "I need another chance! (Wipe save)", skin.dangerButton)) DataManager.ResetAllProgress();
+        if (GUI.Button(new Rect(844, y, bw, bh), "Goodbye.", skin.button)) Close();
+        Text(new Rect(256, 690, 770, 14), "Esc to step away", skin.tiny, Faded, .8f);
     }
 
     void DrawUpgradeOffers()
     {
+        float rowHeight = offerSpacing;
+        float height = 58 + items.Length * rowHeight;
+        var panel = new Rect(350, 524 - height, 580, height);
+        Plaque(panel, 1, .95f);
+        Text(new Rect(panel.x, panel.y + 12, panel.width, 26), "~ WARES ~", skin.bodyCenter, Torch);
+
         for (int i = 0; i < items.Length; i++)
         {
-            float y = offerStartY + i * offerSpacing;
-
-            UpgradeItem item = items[i];
-
-            Offer(y, item, false);
+            if (items[i] == null) continue;
+            float y = panel.y + 48 + i * rowHeight;
+            if (i > 0) Fill(new Rect(panel.x + 20, y - 4, panel.width - 40, 1), A(Bronze, .45f));
+            Offer(new Rect(panel.x + 24, y, panel.width - 48, rowHeight - 8), items[i]);
         }
     }
 
-    void Offer(float y, UpgradeItem item, bool owned)
+    void Offer(Rect row, UpgradeItem item)
     {
+        int availability = ItemAvailable(item);
+        int owned = item.Owned();
 
-        var itemAvailability = ItemAvailable(item);
-        var buttonText = $"{item.cost} coins";
-        var descText = new StringBuilder($"{item.name} | Lvl. {item.Owned()} -> ");
-        if (itemAvailability == 2) 
+        Text(new Rect(row.x, row.y + 4, 300, 22), item.name, skin.heading, Parchment);
+        // One pip per upgrade level; lit pips are already owned.
+        for (int level = 0; level < item.maxLevel; level++)
         {
-            descText.Append("Max level");
+            var pip = new Rect(row.x + level * 14, row.y + 32, 9, 9);
+            Fill(pip, level < owned ? Torch : new Color(.22f, .17f, .12f));
+            Outline(pip, A(Bronze, .8f));
         }
-        else
+        string levelText = availability == 2 ? "Mastered" : $"Lvl {owned}  >  {owned + 1}";
+        Text(new Rect(row.x + item.maxLevel * 14 + 8, row.y + 28, 200, 18), levelText, skin.small, Faded);
+
+        string buttonText = availability switch
         {
-            descText.Append($"Lvl. {item.Owned() + 1}");
-        }
-
-
-            GUI.Label(
-            new Rect(374, y + 9, 285, 30),
-            descText.ToString(),
-            text);
-
+            2 => "Max level",
+            3 => $"Needs the orb from level {item.orbNeeded}",
+            _ => $"{item.cost} coins"
+        };
+        var buttonRect = new Rect(row.xMax - 200, row.y + 6, 200, Mathf.Min(44, row.height - 6));
         bool previousEnabled = GUI.enabled;
-
-
-        switch (itemAvailability){
-            case 0:
-                GUI.enabled = true;
-                break;
-            case 1:
-                GUI.enabled = false;;
-                break;
-            case 2:
-                GUI.enabled = false;
-                buttonText = "Max Level";
-                break ;
-            case 3:
-                GUI.enabled = false;
-                buttonText = $"Requires Orb {item.orbNeeded}";
-                break ;
-        }
-
-        if (GUI.Button(
-            new Rect(714, y, 190, 48),
-            buttonText,
-            button))
+        GUI.enabled = availability == 0;
+        GUI.color = Color.white;
+        if (GUI.Button(buttonRect, buttonText, skin.button))
         {
             dialogue = item.buyText;
             BuyItem(item);
         }
-
         GUI.enabled = previousEnabled;
+        if (availability == 1)
+            Text(new Rect(buttonRect.x, buttonRect.yMax + 1, buttonRect.width, 14), "not enough coin", skin.tiny, Blood);
     }
 
     public void BuyItem(UpgradeItem item)

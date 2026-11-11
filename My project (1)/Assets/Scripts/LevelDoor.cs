@@ -3,6 +3,7 @@ using Unity.Burst.CompilerServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using static Collectible;
+using static DungeonUI;
 
 public class LevelDoor : MonoBehaviour
 {
@@ -10,10 +11,6 @@ public class LevelDoor : MonoBehaviour
     private int level;
     public float interactionRange;
     private LevelData levelData;
-
-
-    GUIStyle text, hint, right, center, title, button;
-    int styledHeight;
 
 
     public bool InRange()
@@ -31,7 +28,9 @@ public class LevelDoor : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame && InRange())
+        bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
+            || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
+        if (interact && InRange())
         {
             Debug.Log($"Interacted to go to Level {level}. Unlocked: {Unlocked()}");
             if (Unlocked())
@@ -62,90 +61,60 @@ public class LevelDoor : MonoBehaviour
 
     #region GUI
 
+    // Standing at a door shows that level's loot record and an enter prompt.
     void OnGUI()
     {
-        if (InRange())
+        if (!InRange()) return;
+        var skin = DungeonUI.ForScreen();
+        float ui = skin.ui;
+        Matrix4x4 oldMatrix = GUI.matrix;
+        Color oldColor = GUI.color;
+        Rect safe = Screen.safeArea;
+        if (safe.width <= 0 || safe.height <= 0) safe = new Rect(0, 0, Screen.width, Screen.height);
+        GUI.matrix = Matrix4x4.Translate(new Vector3(safe.x, Screen.height - safe.yMax, 0));
+        try
         {
-            Styles();
-            Rect safe = Screen.safeArea;
-            if (safe.width <= 0 || safe.height <= 0) safe = new Rect(0, 0, Screen.width, Screen.height);
-            GUI.matrix = Matrix4x4.Translate(new Vector3(safe.x, Screen.height - safe.yMax, 0));
-            GUI.color = Color.white;
             float w = safe.width, h = safe.height;
-            float margin = w < 600 ? 8 : 16;
-            float side = Mathf.Min(Screen.height > 1000 ? 320 : 280, (w - margin * 3) * .5f);
-            float controlsX = w - margin - side;
-            var player = FindAnyObjectByType<Player>().transform.position;
+            float margin = (w < 600 ? 8 : 16) * ui;
+            float promptY = h - margin - 40 * ui;
+            bool exists = DataManager.Levels.ContainsKey(level);
 
-            Panel(new Rect(margin, margin, side, 100));
+            float width = Mathf.Min(340 * ui, w - 2 * margin);
+            var plaque = new Rect((w - width) * .5f, promptY - 112 * ui, width, 100 * ui);
+            Plaque(plaque, ui, .95f, exists && Unlocked() ? Torch : Bronze);
+            Text(new Rect(plaque.x, plaque.y + 10 * ui, plaque.width, 26 * ui), "LEVEL " + level, skin.title, Torch);
 
-            float columnWidth = (side - 24) / 4f;
-
-            if (!DataManager.Levels.ContainsKey(level))
+            if (!exists)
             {
-                GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Coming Soon!");
+                Text(new Rect(plaque.x, plaque.y + 56 * ui, plaque.width, 22 * ui), "Coming soon...", skin.bodyCenter, Faded);
                 return;
             }
 
-            GUI.Label(new Rect(margin + 12, margin + 8, columnWidth, 22), "Gems", hint);
-            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 8, columnWidth, 22), "Gold Bars", hint);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 8, columnWidth, 22), "Orb", hint);
-            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 8, columnWidth, 22), "Crown", hint);
+            int Got(Kind kind) => levelData.collectedCollectables.Count(c => c.kind == kind);
+            int Total(Kind kind) => kind == Kind.Orb || kind == Kind.Crown ? 1 : levelData.totalCollectables.Count(c => c.kind == kind);
+            var entries = new[] { (Kind.Gem, "gems", GemColor), (Kind.Bar, "bars", BarColor),
+                                  (Kind.Orb, "orb", OrbColor), (Kind.Crown, "crown", CrownColor) };
+            float cell = (plaque.width - 24 * ui) / entries.Length;
+            float x = plaque.x + 18 * ui;
+            foreach (var (kind, label, color) in entries)
+            {
+                float pip = 8 * ui;
+                Fill(new Rect(x, plaque.y + 55 * ui, pip, pip), color);
+                Text(new Rect(x + pip + 5 * ui, plaque.y + 48 * ui, cell, 20 * ui), $"{Got(kind)}/{Total(kind)}", skin.body, Parchment);
+                Text(new Rect(x, plaque.y + 70 * ui, cell, 16 * ui), label, skin.tiny, Faded);
+                x += cell;
+            }
 
-            GUI.Label(new Rect(margin + 12, margin + 31, columnWidth, 26),
-                $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Gem)}" +
-                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Gem)}"
-                , title);
-
-            GUI.Label(new Rect(margin + 12 + columnWidth, margin + 31, columnWidth, 26),
-                $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Bar)}" +
-                $" / {levelData.totalCollectables.Count(collectible => collectible.kind == Kind.Bar)}"
-                , title);
-
-            GUI.Label(new Rect(margin + 12 + columnWidth * 2, margin + 31, columnWidth, 26),
-                $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Orb)}" +
-                $" / 1"
-                , title);
-
-            GUI.Label(new Rect(margin + 12 + columnWidth * 3, margin + 31, columnWidth, 26),
-                $"{levelData.collectedCollectables.Count(collectible => collectible.kind == Kind.Crown)}" +
-                " / 1"
-                , title);
-
-            GUI.Label(new Rect(margin + 12, margin + 72, side - 24, 22), "Level: " + level, title);
+            string key = Gamepad.current != null ? "A" : "E";
+            if (Unlocked()) Prompt(w, promptY, key, "Enter the level", skin, Torch);
+            else
+            {
+                var locked = new Rect((w - width) * .5f, promptY, width, 40 * ui);
+                Plaque(locked, ui, .92f, Blood);
+                Text(locked, $"Locked - steal the crown from level {level - 1} first", skin.bodyCenter, Blood);
+            }
         }
-    }
-
-    
-
-    private void Panel(Rect rect)
-    {
-        Fill(new Rect(rect.x + 2, rect.y + 3, rect.width, rect.height), new Color(0, 0, 0, .2f));
-        Fill(rect, new Color(.10f, .11f, .12f, .92f));
-        Fill(new Rect(rect.x, rect.y, rect.width, 1), new Color(.35f, .37f, .36f, .55f));
-    }
-
-    private void Fill(Rect rect, Color color)
-    {
-        Color old = GUI.color;
-        GUI.color = color;
-        GUI.DrawTexture(rect, Texture2D.whiteTexture);
-        GUI.color = old;
-    }
-
-    void Styles()
-    {
-        if (text != null && styledHeight == Screen.height) return;
-        styledHeight = Screen.height;
-        float fontScale = Mathf.Clamp(Screen.height / 900f, 1f, 1.25f);
-        text = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(16 * fontScale) };
-        text.normal.textColor = Color.white;
-        hint = new GUIStyle(text) { fontSize = Mathf.RoundToInt(13 * fontScale), wordWrap = true };
-        hint.normal.textColor = new Color(.78f, .8f, .8f);
-        right = new GUIStyle(hint) { alignment = TextAnchor.UpperRight };
-        center = new GUIStyle(text) { alignment = TextAnchor.MiddleCenter, wordWrap = true };
-        title = new GUIStyle(text) { fontSize = Mathf.RoundToInt(18 * fontScale), fontStyle = FontStyle.Bold };
-        button = new GUIStyle(GUI.skin.button) { fontSize = Mathf.RoundToInt(14 * fontScale), wordWrap = true };
+        finally { GUI.matrix = oldMatrix; GUI.color = oldColor; }
     }
     #endregion
 }

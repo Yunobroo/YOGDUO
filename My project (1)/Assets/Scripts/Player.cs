@@ -49,13 +49,13 @@ public class Player : MonoBehaviour
             return;
         }
 
-        // Read stance before moving so leaving cover never takes an extra frame.
+      
         Vector2 input = ReadMovementInput();
         bool running = UpdateMovementMode(input, game.CarryingCrown);
         Hidden = Sneaking && game.InHidingSpot(transform.position);
         Move(input, running, Time.deltaTime);
 
-        //Sneaking
+
         Hidden = Sneaking && game.InHidingSpot(transform.position);
         if (body != null)
         {

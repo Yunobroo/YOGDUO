@@ -192,8 +192,10 @@ public static class DataManager
 
     public static void ResetAllProgress()
     {
-        data = new SaveData();
-
+        // Rebuild exactly like a first launch so every level entry exists again.
+        PlayerPrefs.DeleteKey(SaveKey);
+        data = null;
+        Load();
         Save();
     }
 

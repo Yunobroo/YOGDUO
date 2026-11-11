@@ -39,7 +39,7 @@ public class SearchAndChase : MonoBehaviour
 
     void Start()
     {
-        WorldHighlight.Add(gameObject, new Color(1f, .2f, .12f));
+        WorldHighlight.Add(gameObject, new Color(1f, .2f, .12f));
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         EnsureNavigation();
         if (target != null) player = target.GetComponent<Player>();
