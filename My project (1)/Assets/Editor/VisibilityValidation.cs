@@ -82,10 +82,10 @@ public static class VisibilityValidation
             Invoke(fade, "LateUpdate");
             Check(((IDictionary)typeof(CameraOcclusion).GetField("walls", Private).GetValue(fade)).Count == 1,
                 "Camera detects the wall between it and the player", report);
-            Check(renderer.sharedMaterial != original && renderer.sharedMaterial.shader.name == "Goblin/OccluderFade",
-                "Occlusion uses a private transparent material", report);
+            Check(renderer.sharedMaterial != original && renderer.sharedMaterial.shader.name == "Goblin/PeepholeLit",
+                "Peephole swaps in a private copy of the wall's own Lit material", report);
             Check(WorldSight.Blocked(camera.transform.position, target.transform.position + Vector3.up * .65f, camera.transform, target.transform),
-                "A visually faded pillar still blocks guard sight", report);
+                "A wall with a peephole still blocks guard sight", report);
             // Remove the obstruction and drive restoration from the final fade step.
             wall.transform.position += Vector3.right * 10;
             Physics.SyncTransforms();
@@ -93,12 +93,12 @@ public static class VisibilityValidation
             Invoke(fade, "LateUpdate");
             Check(renderer.sharedMaterial == original && original.color == Color.gray,
                 "Wall restores its exact original material when no longer blocking", report);
-            // A wall just beside the player should not fade merely because it is nearby.
-            wall.transform.position -= Vector3.right * 6.8f;
+            // A wall well outside the peephole should keep its own material.
+            wall.transform.position -= Vector3.right * 4f;
             Physics.SyncTransforms();
             if (playing) scene.GetPhysicsScene().Simulate(.02f);
             Invoke(fade, "LateUpdate");
-            Check(renderer.sharedMaterial == original, "Nearby wall outside the actual sight line stays opaque", report);
+            Check(renderer.sharedMaterial == original, "Wall outside the peephole keeps its original material", report);
             var bedAsset = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/HidingSpots/Bed.prefab");
             var bed = playing ? UnityEngine.Object.Instantiate(bedAsset) : (GameObject)PrefabUtility.InstantiatePrefab(bedAsset, scene);
             if (playing) SceneManager.MoveGameObjectToScene(bed, scene);

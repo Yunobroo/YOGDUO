@@ -5,9 +5,10 @@ using UnityEngine.InputSystem;
 // See-through walls, with every design we tried kept so the design process can be shown.
 // Press F5 in Play mode (or change "design" on the camera's CameraOcclusion) to cycle:
 //   1 Original fade - walls in the way turn 30% transparent (first version)
-//   2 Peephole      - walls stay solid; a dithered hole opens around the goblin
+//   2 Peephole      - walls stay solid; a clean round hole with a soft glowing rim opens
+//                     around the goblin (default)
 //   3 Silhouette    - walls never change; the goblin and guards glow through them
-//   4 Stone fade    - the original fade, washed dusty grey-brown (final design, default)
+//   4 Stone fade    - the original fade, washed dusty grey-brown
 [DefaultExecutionOrder(200)]
 [RequireComponent(typeof(Camera))]
 public class CameraOcclusion : MonoBehaviour
@@ -15,7 +16,7 @@ public class CameraOcclusion : MonoBehaviour
     public enum Design { OriginalFade, Peephole, Silhouette, StoneFade }
 
     [Tooltip("F5 cycles through the designs while playing.")]
-    public Design design = Design.StoneFade;
+    public Design design = Design.Peephole;
     public Transform target;
 
     [Header("Fade designs (1 and 4)")]
@@ -27,9 +28,14 @@ public class CameraOcclusion : MonoBehaviour
     [Header("Peephole design (2)")]
     [Tooltip("Hole radius as a fraction of screen height.")]
     [Range(.03f, .5f)] public float holeRadius = .08f;
+    [Tooltip("How far the rim glow spreads outward, as a fraction of the hole radius.")]
     [Range(0, 1)] public float edgeSoftness = .35f;
+    [Tooltip("Colour of the soft glow around the hole.")]
     public Color rimColor = new Color(1f, .6f, .25f);
-    [Range(0, 2)] public float rimStrength = .6f;
+    [Tooltip("Brightness of the rim glow (0 = no glow, just a clean edge).")]
+    [Range(0, 2)] public float rimStrength = 0f;
+    [Tooltip("Height (m) above the goblin's feet that the hole never cuts, so the empty space under walls stays hidden.")]
+    [Range(0, 1.5f)] public float holeSill = .45f;
 
     [Header("Silhouette design (3)")]
     public Color goblinGlow = new Color(.45f, 1f, .4f, .6f);
@@ -40,7 +46,7 @@ public class CameraOcclusion : MonoBehaviour
     public float occlusionDelay = .18f;
     public float releaseDelay = .1f;
 
-    static readonly string[] DesignNames = { "Original fade", "Peephole", "Silhouette", "Stone fade (final)" };
+    static readonly string[] DesignNames = { "Original fade", "Peephole (final)", "Silhouette", "Stone fade" };
     static readonly string[] DesignNotes =
     {
         "Walls in the way turn 30% see-through",
@@ -102,7 +108,7 @@ public class CameraOcclusion : MonoBehaviour
             if (IsPeephole)
             {
                 Shader.SetGlobalVector(PeepTargetId, destination);
-                Shader.SetGlobalVector(PeepShapeId, new Vector4(holeRadius, edgeSoftness, rimStrength, 0));
+                Shader.SetGlobalVector(PeepShapeId, new Vector4(holeRadius, edgeSoftness, rimStrength, holeSill));
                 Shader.SetGlobalColor(PeepRimId, rimColor);
             }
             FindBlockers(destination);

@@ -39,9 +39,14 @@ public class ShopHub : MonoBehaviour
     }
 
     #region Interaction Range
+    Player player;
+
     private bool InRange()
     {
-        var playerPos = FindAnyObjectByType<Player>().transform.position;
+        // Cached: searching the scene every call ran several times per frame.
+        if (player == null) player = FindAnyObjectByType<Player>();
+        if (player == null) return false;
+        var playerPos = player.transform.position;
         Vector3 offset = playerPos - transform.position;
         offset.y = 0;
         return isActiveAndEnabled && offset.sqrMagnitude <= interactionRadius * interactionRadius;

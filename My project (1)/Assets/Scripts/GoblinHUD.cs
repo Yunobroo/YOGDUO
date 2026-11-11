@@ -93,6 +93,8 @@ public class GoblinHUD : MonoBehaviour
     void OnGUI()
     {
         if (game == null || game.isHub) return;
+        // OnGUI runs for every input/layout event; only the end screen has buttons that need those.
+        if (game.Playing && Event.current.type != EventType.Repaint) return;
         Styles();
         Matrix4x4 oldMatrix = GUI.matrix;
         Color oldColor = GUI.color;

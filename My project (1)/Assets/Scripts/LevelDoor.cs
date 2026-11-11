@@ -13,9 +13,14 @@ public class LevelDoor : MonoBehaviour
     private LevelData levelData;
 
 
+    Player player;
+
     public bool InRange()
     {
-        var playerPos = FindAnyObjectByType<Player>().transform.position;
+        // Cached: searching the scene every call ran several times per frame per door.
+        if (player == null) player = FindAnyObjectByType<Player>();
+        if (player == null) return false;
+        var playerPos = player.transform.position;
         Vector3 offset = playerPos - transform.position;
         offset.y = 0;
         return isActiveAndEnabled && offset.sqrMagnitude <= interactionRange * interactionRange;
@@ -64,7 +69,8 @@ public class LevelDoor : MonoBehaviour
     // Standing at a door shows that level's loot record and an enter prompt.
     void OnGUI()
     {
-        if (!InRange()) return;
+        // Display only (no buttons), so draw once per frame instead of for every input event.
+        if (Event.current.type != EventType.Repaint || !InRange()) return;
         var skin = DungeonUI.ForScreen();
         float ui = skin.ui;
         Matrix4x4 oldMatrix = GUI.matrix;

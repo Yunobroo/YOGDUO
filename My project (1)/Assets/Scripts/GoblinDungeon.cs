@@ -52,6 +52,8 @@ public class GoblinDungeon : MonoBehaviour
         hidingSpots = FindObjectsByType<HideSpot>();
         collectibles = FindObjectsByType<Collectible>();
         InitializeCollectables();
+        // Only the torches nearest the goblin cast shadows; see LightShadowBudget.
+        if (GetComponent<LightShadowBudget>() == null) gameObject.AddComponent<LightShadowBudget>();
     }
 
     private void InitializeCollectables()
