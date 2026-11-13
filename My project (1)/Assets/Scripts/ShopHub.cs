@@ -165,7 +165,7 @@ public class ShopHub : MonoBehaviour
         {
             2 => "Max level",
             3 => $"Needs the orb from level {item.orbNeeded}",
-            _ => $"{item.cost} coins"
+            _ => $"{item.CurrentCost()} coins"
         };
         var buttonRect = new Rect(row.xMax - 200, row.y + 6, 200, Mathf.Min(44, row.height - 6));
         bool previousEnabled = GUI.enabled;
@@ -183,7 +183,7 @@ public class ShopHub : MonoBehaviour
 
     public void BuyItem(UpgradeItem item)
     {
-        DataManager.Data.bank -= item.cost;
+        DataManager.Data.bank -= item.CurrentCost();
         item.OnBuy();
         DataManager.Save();
     }
@@ -199,7 +199,7 @@ public class ShopHub : MonoBehaviour
             return 3;                                                                               //Locked behing orb
 
 
-        if (DataManager.Data.bank < item.cost) return 1;                                            // "Come back with a few more gold"
+        if (DataManager.Data.bank < item.CurrentCost()) return 1;                                            // "Come back with a few more gold"
         return 0;                                                                                   //Success condition
     }
 }
