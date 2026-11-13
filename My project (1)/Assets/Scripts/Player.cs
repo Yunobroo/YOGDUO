@@ -19,7 +19,7 @@ public class Player : MonoBehaviour
     CharacterController controller;
     Transform body;
     Transform movementCamera;
-    bool crouchToggled, sprintToggled, exhausted;
+    bool crouchToggled, exhausted;
     float stepDistance;
     Vector3 standingScale = Vector3.one;
     Animator animator;
@@ -44,7 +44,6 @@ public class Player : MonoBehaviour
         {
             NoiseRadius = 0;
             stepDistance = 0;
-            sprintToggled = false;
             if (animator != null && animator.isActiveAndEnabled) animator.SetFloat(MoveSpeed, 0);
             return;
         }
@@ -78,9 +77,7 @@ public class Player : MonoBehaviour
             // ReadValue applies the Input System's stick deadzone and preserves analog speed.
             Vector2 stick = pad.leftStick.ReadValue();
             if (stick.sqrMagnitude > input.sqrMagnitude) input = stick;
-            if (pad.leftStickButton.wasPressedThisFrame) sprintToggled = !sprintToggled;
         }
-        else sprintToggled = false;
         return input;
     }
 
@@ -88,12 +85,12 @@ public class Player : MonoBehaviour
     {
         var keys = Keyboard.current;
         var pad = Gamepad.current;
-        if ((keys != null && keys.cKey.wasPressedThisFrame) || (pad != null && pad.rightStickButton.wasPressedThisFrame))
+        // Crouch toggles with C or the controller's Circle / B button (east face button).
+        if ((keys != null && keys.cKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame))
             crouchToggled = !crouchToggled;
         Sneaking = crouchToggled || (keys != null && (keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed));
-        // Click L3 once to run; stopping or crouching cancels controller sprint.
-        if (input.sqrMagnitude == 0 || Sneaking || carryingCrown) sprintToggled = false;
-        bool sprintHeld = sprintToggled || (keys != null && keys.spaceKey.isPressed);
+        // Sprint while holding Space or the controller's R1 / RB.
+        bool sprintHeld = (keys != null && keys.spaceKey.isPressed) || (pad != null && pad.rightShoulder.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
         bool running = sprintHeld && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
         if(carryingCrown && !DataManager.Data.sprintWhileCarrying)

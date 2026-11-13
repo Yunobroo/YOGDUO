@@ -54,7 +54,7 @@ public class GoblinHUD : MonoBehaviour
         if (player == null || !game.Playing || IntroVisible) return;
         if (player.Hidden) hasHidden = true;
         else if (!hasHidden && game.InHidingSpot(player.transform.position))
-            Hint(Pad ? "Click R3 to crouch and hide here" : "Crouch (Ctrl / C) to hide here", .2f);
+            Hint(Pad ? "Press Circle / B to crouch and hide here" : "Crouch (Ctrl / C) to hide here", .2f);
 
         if (!spottedBefore && game.guards.Any(g => g != null && g.CanSeeTarget))
         {
@@ -253,8 +253,8 @@ public class GoblinHUD : MonoBehaviour
         }
 
         (string key, string action)[] rows = Pad
-            ? new[] { ("Left stick", "Sneak through the dark"), ("L3", "Sprint (drains stamina)"),
-                      ("R3", "Crouch - quieter, harder to spot"), ("Crouch in green", "Hide from guards"),
+            ? new[] { ("Left stick", "Sneak through the dark"), ("Hold R1 / RB", "Sprint (drains stamina)"),
+                      ("Circle / B", "Crouch - quieter, harder to spot"), ("Crouch in green", "Hide from guards"),
                       ("View", "Show / hide controls") }
             : new[] { ("W A S D", "Move"), ("Space", "Sprint (drains stamina)"),
                       ("Ctrl / C", "Crouch - quieter, harder to spot"), ("Crouch in green", "Hide from guards"),
