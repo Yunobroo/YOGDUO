@@ -35,7 +35,7 @@ public class LevelDoor : MonoBehaviour
     {
         bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
             || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
-        if (interact && InRange())
+        if (interact && !MenuNav.GameplayBlocked && InRange())
         {
             Debug.Log($"Interacted to go to Level {level}. Unlocked: {Unlocked()}");
             if (Unlocked())
@@ -70,7 +70,7 @@ public class LevelDoor : MonoBehaviour
     void OnGUI()
     {
         // Display only (no buttons), so draw once per frame instead of for every input event.
-        if (Event.current.type != EventType.Repaint || !InRange()) return;
+        if (Event.current.type != EventType.Repaint || MenuNav.GameplayBlocked || !InRange()) return;
         var skin = DungeonUI.ForScreen();
         float ui = skin.ui;
         Matrix4x4 oldMatrix = GUI.matrix;

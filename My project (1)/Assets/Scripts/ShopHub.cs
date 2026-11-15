@@ -20,22 +20,34 @@ public class ShopHub : MonoBehaviour
        game = GoblinDungeon.Instance;
     }
 
+    readonly MenuNav nav = new MenuNav();
+    float wipeArmedUntil = -10;
+
     void Update()
     {
         if (game == null) game = GoblinDungeon.Instance;
 
         if (game == null || !game.isHub) return;
 
+        if (shopOpen)
+        {
+            nav.Tick();
+            // B / Circle / Esc: leave the wares first, then step away. E still closes too.
+            if (nav.Back) { if (trading) SetTrading(false); else Close(); }
+            else if (Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame) Close();
+            return;
+        }
+
         bool interact = Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
             || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
+        // Another menu (the title screen) owns the buttons while it is open.
+        if (interact && !MenuNav.GameplayBlocked && InRange()) Interact();
+    }
 
-        if (interact && InRange()) Interact();
-
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            if (trading) trading = false;
-            else Close();
-        }
+    void SetTrading(bool value)
+    {
+        trading = value;
+        nav.Open(); // wares open on the first item; going back lands on the first dialogue choice
     }
 
     #region Interaction Range
@@ -72,6 +84,7 @@ public class ShopHub : MonoBehaviour
         {
             shopOpen = true;
             dialogue = "Looking to buy something?";
+            nav.Open();
         }
     }
 
@@ -91,8 +104,13 @@ public class ShopHub : MonoBehaviour
         try
         {
             DrawPurse();
-            if (shopOpen) DrawConversation();
-            else if (InRange())
+            if (shopOpen)
+            {
+                nav.Begin();
+                DrawConversation();
+                nav.End();
+            }
+            else if (InRange() && !MenuNav.GameplayBlocked)
                 Prompt(1280, 640, Gamepad.current != null ? "A" : "E", "Talk to the Fence", skin, Torch);
         }
         finally { GUI.matrix = oldMatrix; GUI.color = oldColor; GUI.enabled = oldEnabled; }
@@ -118,14 +136,22 @@ public class ShopHub : MonoBehaviour
 
         GUI.color = Color.white;
         float y = 646, bw = 180, bh = 38;
-        if (GUI.Button(new Rect(256, y, bw, bh), trading ? "Back" : "Show me your wares", skin.button)) trading = !trading;
-        if (GUI.Button(new Rect(452, y, bw, bh), "Any work?", skin.button))
+        if (nav.Button(new Rect(256, y, bw, bh), trading ? "Back" : "Show me your wares", skin.button)) SetTrading(!trading);
+        if (nav.Button(new Rect(452, y, bw, bh), "Any work?", skin.button))
             dialogue = DataManager.Data.levels.Any(level => level.completed == false) ? "Still plenty of gold in those vaults. Help yourself."
                 : DataManager.CompletedLevel(1) ? "The royal vault's open. Gate on your right."
                 : "Bring back the dungeon crown. Then I'll open the royal vault.";
-        if (GUI.Button(new Rect(648, y, bw, bh), "I need another chance! (Wipe save)", skin.dangerButton)) DataManager.ResetAllProgress();
-        if (GUI.Button(new Rect(844, y, bw, bh), "Goodbye.", skin.button)) Close();
-        Text(new Rect(256, 690, 770, 14), "Esc to step away", skin.tiny, Faded, .8f);
+        // Wiping the save is easy to hit by accident on a controller, so it takes two presses.
+        bool wipeArmed = Time.unscaledTime < wipeArmedUntil;
+        if (nav.Button(new Rect(648, y, bw, bh), wipeArmed ? "Sure? Press again to wipe" : "I need another chance! (Wipe save)", skin.dangerButton))
+        {
+            if (wipeArmed) { DataManager.ResetAllProgress(); wipeArmedUntil = -10; dialogue = "Fresh start, then. Don't waste it."; }
+            else { wipeArmedUntil = Time.unscaledTime + 3f; dialogue = "You'd lose everything. Certain?"; }
+        }
+        if (nav.Button(new Rect(844, y, bw, bh), "Goodbye.", skin.button)) Close();
+        bool pad = Gamepad.current != null;
+        Text(new Rect(256, 690, 770, 14), pad ? "D-pad / stick to choose  ·  A to select  ·  B to step away"
+                                             : "Arrows to choose  ·  Enter to select  ·  Esc to step away", skin.tiny, Faded, .8f);
     }
 
     void DrawUpgradeOffers()
@@ -171,7 +197,7 @@ public class ShopHub : MonoBehaviour
         bool previousEnabled = GUI.enabled;
         GUI.enabled = availability == 0;
         GUI.color = Color.white;
-        if (GUI.Button(buttonRect, buttonText, skin.button))
+        if (nav.Button(buttonRect, buttonText, skin.button))
         {
             dialogue = item.buyText;
             BuyItem(item);

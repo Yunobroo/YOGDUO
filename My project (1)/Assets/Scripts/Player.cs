@@ -40,7 +40,8 @@ public class Player : MonoBehaviour
     {
         var game = GoblinDungeon.Instance;
 
-        if (game == null || !game.Playing)
+        // Menus (title, shop, end screen) use the same stick and keys, so the goblin waits while one is open.
+        if (game == null || !game.Playing || MenuNav.GameplayBlocked)
         {
             NoiseRadius = 0;
             stepDistance = 0;

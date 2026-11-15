@@ -25,6 +25,9 @@ public class GoblinHUD : MonoBehaviour
     string hintText;
     float hintUntil;
 
+    readonly MenuNav endNav = new MenuNav();
+    bool endNavOpen;
+
     bool Pad => Gamepad.current != null;
     bool IntroVisible => !introDismissed && Time.timeSinceLevelLoad < introDuration + 1f;
 
@@ -38,7 +41,14 @@ public class GoblinHUD : MonoBehaviour
             if (IntroVisible) introDismissed = true;
             else showControls = !showControls;
         }
-        if (!game.Playing) { introDismissed = true; showControls = false; }
+        if (!game.Playing)
+        {
+            introDismissed = true;
+            showControls = false;
+            // Caught / escaped screen: its buttons work with the controller and keys too.
+            if (!endNavOpen) { endNav.Open(); endNavOpen = true; }
+            endNav.Tick();
+        }
 
         var player = game.player;
         float stamina = player == null ? 1 : player.Stamina;
@@ -303,10 +313,12 @@ public class GoblinHUD : MonoBehaviour
         float rowHeight = Mathf.Min(40 * ui, (panel.height - 125 * ui) / 3);
         float y = panel.y + 112 * ui;
         GUI.color = Color.white;
-        if (GUI.Button(new Rect(x, y, contentWidth, rowHeight), "Return to the shop hub", button)) DataManager.EnterLevel(0);
+        endNav.Begin();
+        if (endNav.Button(new Rect(x, y, contentWidth, rowHeight), "Return to the shop hub", button, ui)) DataManager.EnterLevel(0);
         if (game.Won && game.levelNumber == 1 &&
-            GUI.Button(new Rect(x, y + rowHeight + 8 * ui, contentWidth, rowHeight), "Enter level 2 - The Royal Vault", button))
+            endNav.Button(new Rect(x, y + rowHeight + 8 * ui, contentWidth, rowHeight), "Enter level 2 - The Royal Vault", button, ui))
             DataManager.EnterLevel(2);
-        if (GUI.Button(new Rect(x, panel.yMax - rowHeight - 18 * ui, contentWidth, rowHeight), "Try another run", button)) game.Restart();
+        if (endNav.Button(new Rect(x, panel.yMax - rowHeight - 18 * ui, contentWidth, rowHeight), "Try another run", button, ui)) game.Restart();
+        endNav.End();
     }
 }
