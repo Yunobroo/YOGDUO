@@ -8,7 +8,7 @@ using static DungeonUI;
 public class TitleScreen : MonoBehaviour
 {
     const string GameName = "SNEAKY SNATCHER";
-    const string Tagline = "Sneak in. Steal the crown. Get out.";
+    const string Tagline = "He's not stealing. He's borrowing. Forever.";
 
     enum Page { Main, Controls, ConfirmNewGame }
 
@@ -29,8 +29,9 @@ public class TitleScreen : MonoBehaviour
     {
         if (closingSince >= 0)
         {
-            // Fade out, then load the hub.
-            alpha = 1 - (Time.unscaledTime - closingSince) / .4f;
+            // Fade to black, then load the level. Stays black until the new scene takes over.
+            if (closingSince == float.MaxValue) return;
+            alpha = Mathf.Max(0, 1 - (Time.unscaledTime - closingSince) / .5f);
             if (alpha <= 0) { closingSince = float.MaxValue; DataManager.EnterLevel(destination); }
             return;
         }
@@ -56,80 +57,104 @@ public class TitleScreen : MonoBehaviour
     {
         var skin = ForScreen();
         float ui = skin.ui, w = Screen.width, h = Screen.height;
-        if (logo == null || logoUi != ui)
+        float column = Mathf.Min(w * .46f, 640 * ui), left = w * .05f;
+        if (logo == null || logoUi != ui || logoColumn != column)
         {
             logoUi = ui;
-            logo = new GUIStyle(skin.title) { fontSize = Mathf.RoundToInt(64 * ui) };
+            logoColumn = column;
+            // Biggest title that still fits the column on one line, so it never wraps into the tagline.
+            logo = new GUIStyle(skin.title) { fontSize = Mathf.RoundToInt(72 * ui), wordWrap = false };
+            while (logo.fontSize > 18 && logo.CalcSize(new GUIContent(GameName)).x > column) logo.fontSize -= 2;
+            tagline = new GUIStyle(skin.bodyCenter) { fontSize = Mathf.RoundToInt(18 * ui), wordWrap = true };
+            menuButton = new GUIStyle(skin.button) { fontSize = Mathf.RoundToInt(22 * ui), wordWrap = false };
+            dangerButton = new GUIStyle(skin.dangerButton) { fontSize = Mathf.RoundToInt(22 * ui), wordWrap = false };
         }
         Matrix4x4 oldMatrix = GUI.matrix;
         Color oldColor = GUI.color;
         GUI.matrix = Matrix4x4.identity;
         try
         {
-            // Darken the hub behind, heavier at the top and bottom like torchlight fading out.
-            Fill(new Rect(0, 0, w, h), new Color(0, 0, 0, .62f * alpha));
-            Fill(new Rect(0, 0, w, h * .18f), new Color(0, 0, 0, .25f * alpha));
-            Fill(new Rect(0, h * .82f, w, h * .18f), new Color(0, 0, 0, .25f * alpha));
+            // The goblin owns the right side of the scene; a soft dark gradient on the left keeps the menu readable.
+            for (int i = 0; i < 10; i++) Fill(new Rect(0, 0, w * (.6f - i * .04f), h), new Color(0, 0, 0, .07f));
 
-            float top = h * .14f;
-            Text(new Rect(0, top, w, 80 * ui), GameName, logo, Torch, alpha);
-            Text(new Rect(0, top + 82 * ui, w, 24 * ui), Tagline, skin.bodyCenter, Parchment, alpha);
-            Fill(new Rect(w * .5f - 90 * ui, top + 116 * ui, 180 * ui, 1), A(Bronze, alpha));
+            // Everything below is drawn in a column on the left; the page layouts centre within it.
+            GUI.matrix = Matrix4x4.Translate(new Vector3(left, 0, 0));
 
-            if (closingSince >= 0) return; // no menu while fading out
-            GUI.color = new Color(1, 1, 1, alpha);
-            nav.Begin();
-            float menuTop = top + 150 * ui;
-            if (page == Page.Main) MainMenu(skin, w, menuTop);
-            else if (page == Page.Controls) ControlsPage(skin, w, menuTop);
-            else ConfirmPage(skin, w, menuTop);
-            nav.End();
+            // Stack title, tagline and menu by their real heights so nothing overlaps.
+            float top = h * .1f;
+            float logoH = logo.CalcSize(new GUIContent(GameName)).y;
+            Text(new Rect(0, top, column, logoH), GameName, logo, Torch, alpha);
+            float y = top + logoH + 6 * ui;
+            float taglineH = tagline.CalcHeight(new GUIContent(Tagline), column);
+            Text(new Rect(0, y, column, taglineH), Tagline, tagline, Parchment, alpha);
+            y += taglineH + 14 * ui;
+            Fill(new Rect(column * .5f - 90 * ui, y, 180 * ui, 1), A(Bronze, alpha));
 
-            bool pad = Gamepad.current != null;
-            Text(new Rect(0, h - 40 * ui, w, 20 * ui),
-                pad ? "D-pad / stick to choose  ·  A to select  ·  B to go back"
-                    : "Arrows or mouse to choose  ·  Enter to select  ·  Esc to go back",
-                CenterSmall(skin), Faded, alpha);
+            if (closingSince < 0)
+            {
+                GUI.color = new Color(1, 1, 1, alpha);
+                nav.Begin();
+                float menuTop = y + 24 * ui;
+                if (page == Page.Main) MainMenu(skin, column, menuTop);
+                else if (page == Page.Controls) ControlsPage(skin, column, menuTop);
+                else ConfirmPage(skin, column, menuTop);
+                nav.End();
+            }
+
+            // Fade the whole screen to black on the way out.
+            GUI.matrix = Matrix4x4.identity;
+            if (alpha < 1) Fill(new Rect(0, 0, w, h), new Color(0, 0, 0, 1 - Mathf.Clamp01(alpha)));
         }
         finally { GUI.matrix = oldMatrix; GUI.color = oldColor; }
     }
 
-    GUIStyle centerSmall;
+    GUIStyle centerSmall, tagline, menuButton, dangerButton, cell;
+    float logoColumn, cellWidth;
     GUIStyle CenterSmall(Skin skin) => centerSmall ??= new GUIStyle(skin.small) { alignment = TextAnchor.MiddleCenter };
+
+    // Big, chunky menu buttons: wide and tall, sized to the column.
+    static void ButtonSize(Skin skin, float w, out float bw, out float bh, out float gap)
+    {
+        bw = Mathf.Min(w * .85f, 440 * skin.ui);
+        bh = 62 * skin.ui;
+        gap = 14 * skin.ui;
+    }
 
     void MainMenu(Skin skin, float w, float y)
     {
-        float ui = skin.ui, bw = 300 * ui, bh = 44 * ui, gap = 12 * ui;
+        float ui = skin.ui;
+        ButtonSize(skin, w, out float bw, out float bh, out float gap);
         bool progress = HasProgress;
         int rows = progress ? 4 : 3;
         var panel = new Rect((w - bw) * .5f - 24 * ui, y, bw + 48 * ui, rows * (bh + gap) + 36 * ui);
         Plaque(panel, ui, .95f);
         float x = (w - bw) * .5f, row = y + 18 * ui;
 
-        if (nav.Button(new Rect(x, row, bw, bh), progress ? "Continue" : "Start the heist", skin.button, ui)) Close(progress ? 0 : 1);
+        if (nav.Button(new Rect(x, row, bw, bh), progress ? "Continue" : "Start the heist", menuButton, ui)) Close(progress ? 0 : 1);
         row += bh + gap;
         if (progress)
         {
-            if (nav.Button(new Rect(x, row, bw, bh), "New game", skin.button, ui)) Show(Page.ConfirmNewGame);
+            if (nav.Button(new Rect(x, row, bw, bh), "New game", menuButton, ui)) Show(Page.ConfirmNewGame);
             row += bh + gap;
         }
-        if (nav.Button(new Rect(x, row, bw, bh), "Controls", skin.button, ui)) Show(Page.Controls);
+        if (nav.Button(new Rect(x, row, bw, bh), "Controls", menuButton, ui)) Show(Page.Controls);
         row += bh + gap;
-        if (nav.Button(new Rect(x, row, bw, bh), "Quit", skin.button, ui)) Quit();
+        if (nav.Button(new Rect(x, row, bw, bh), "Quit", menuButton, ui)) Quit();
     }
 
     void ConfirmPage(Skin skin, float w, float y)
     {
-        float ui = skin.ui, bw = 300 * ui, bh = 44 * ui, gap = 12 * ui;
-        var panel = new Rect((w - bw) * .5f - 24 * ui, y, bw + 48 * ui, 2 * (bh + gap) + 96 * ui);
+        float ui = skin.ui;
+        ButtonSize(skin, w, out float bw, out float bh, out float gap);
+        var panel = new Rect((w - bw) * .5f - 24 * ui, y, bw + 48 * ui, 2 * (bh + gap) + 110 * ui);
         Plaque(panel, ui, .95f, Blood);
-        Text(new Rect(panel.x, y + 16 * ui, panel.width, 24 * ui), "Start over?", skin.bodyCenter, Blood);
-        Text(new Rect(panel.x + 16 * ui, y + 42 * ui, panel.width - 32 * ui, 36 * ui),
+        Text(new Rect(panel.x, y + 16 * ui, panel.width, 30 * ui), "Start over?", tagline, Blood);
+        Text(new Rect(panel.x + 16 * ui, y + 50 * ui, panel.width - 32 * ui, 36 * ui),
             "All coins, loot and upgrades will be lost.", CenterSmall(skin), Parchment);
-        float x = (w - bw) * .5f, row = y + 84 * ui;
-        if (nav.Button(new Rect(x, row, bw, bh), "No, keep my progress", skin.button, ui)) Show(Page.Main);
+        float x = (w - bw) * .5f, row = y + 96 * ui;
+        if (nav.Button(new Rect(x, row, bw, bh), "No, keep my progress", menuButton, ui)) Show(Page.Main);
         row += bh + gap;
-        if (nav.Button(new Rect(x, row, bw, bh), "Yes, wipe and start over", skin.dangerButton, ui))
+        if (nav.Button(new Rect(x, row, bw, bh), "Yes, wipe and start over", dangerButton, ui))
         {
             DataManager.ResetAllProgress();
             Close(1); // fresh save: straight into the first heist
@@ -150,24 +175,35 @@ public class TitleScreen : MonoBehaviour
             ("Restart run", "R", "-"),
             ("Controls card", "H", "View"),
         };
-        float width = Mathf.Min(620 * ui, w - 32), rowH = 26 * ui;
-        float bh = 40 * ui;
-        var panel = new Rect((w - width) * .5f, y, width, 56 * ui + rows.Length * rowH + bh + 28 * ui);
+        float width = Mathf.Min(640 * ui, w), rowH = 32 * ui, bh = 56 * ui;
+        var panel = new Rect((w - width) * .5f, y, width, 60 * ui + rows.Length * rowH + bh + 32 * ui);
         Plaque(panel, ui, .95f);
-        float c1 = panel.x + 24 * ui, c2 = panel.x + width * .36f, c3 = panel.x + width * .68f;
-        float row = y + 16 * ui;
-        Text(new Rect(c2, row, width * .3f, 22 * ui), "KEYBOARD", skin.heading, Torch);
-        Text(new Rect(c3, row, width * .3f, 22 * ui), "CONTROLLER", skin.heading, Torch);
-        row += 34 * ui;
+        // Three columns of fixed width; the cell font shrinks until the longest entry fits its column,
+        // so entries never run into the next column.
+        float pad0 = 20 * ui, colW = (width - pad0 * 2) / 3f - 8 * ui;
+        float c1 = panel.x + pad0, c2 = c1 + colW + 12 * ui, c3 = c2 + colW + 12 * ui;
+        if (cell == null || cellWidth != colW)
+        {
+            cellWidth = colW;
+            cell = new GUIStyle(skin.body) { fontSize = Mathf.RoundToInt(17 * ui), wordWrap = false, clipping = TextClipping.Clip };
+            while (cell.fontSize > 10 && System.Array.Exists(rows, r =>
+                       cell.CalcSize(new GUIContent(r.action)).x > colW || cell.CalcSize(new GUIContent(r.keys)).x > colW ||
+                       cell.CalcSize(new GUIContent(r.pad)).x > colW))
+                cell.fontSize--;
+        }
+        float row = y + 18 * ui;
+        Text(new Rect(c2, row, colW, 24 * ui), "KEYBOARD", skin.heading, Torch);
+        Text(new Rect(c3, row, colW, 24 * ui), "CONTROLLER", skin.heading, Torch);
+        row += 38 * ui;
         foreach (var (action, keys, pad) in rows)
         {
-            Text(new Rect(c1, row, width * .3f, rowH), action, skin.body, Parchment);
-            Text(new Rect(c2, row, width * .32f, rowH), keys, skin.body, Faded);
-            Text(new Rect(c3, row, width * .3f, rowH), pad, skin.body, Faded);
+            Text(new Rect(c1, row, colW, rowH), action, cell, Parchment);
+            Text(new Rect(c2, row, colW, rowH), keys, cell, Faded);
+            Text(new Rect(c3, row, colW, rowH), pad, cell, Faded);
             row += rowH;
         }
-        float bw = 200 * ui;
-        if (nav.Button(new Rect(panel.center.x - bw * .5f, panel.yMax - bh - 16 * ui, bw, bh), "Back", skin.button, ui)) Show(Page.Main);
+        float bw = Mathf.Min(width * .6f, 260 * ui);
+        if (nav.Button(new Rect(panel.center.x - bw * .5f, panel.yMax - bh - 16 * ui, bw, bh), "Back", menuButton, ui)) Show(Page.Main);
     }
 
     static void Quit()
