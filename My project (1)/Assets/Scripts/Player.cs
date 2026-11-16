@@ -4,59 +4,133 @@ using UnityEngine.InputSystem;
 public class Player : MonoBehaviour
 {
     [Header("Movement")]
-    public float walkSpeed = 3f;
-    public float sneakSpeed = 1.6f;
-    public float sprintSpeed = 5.5f;
+    public float walkSpeed = 2.5f;
+    public float sneakSpeed = 1.3f;
+    public float sprintSpeed = 4.5f;
     public bool Hidden { get; private set; }
     public bool Sneaking { get; private set; }
     public float NoiseRadius { get; private set; }
     public float Stamina { get; private set; } = 1f;
     public int FootstepId { get; private set; }
     public Vector3 FootstepPosition { get; private set; }
+
+    public static float StaminaDrain => .27f / (1 + DataManager.Data.stamina * .25f);
     public float FootstepRadius { get; private set; }
     CharacterController controller;
     Transform body;
     Transform movementCamera;
     bool crouchToggled, exhausted;
     float stepDistance;
+    Vector3 standingScale = Vector3.one;
+    Animator animator;
+    static readonly int MoveSpeed = Animator.StringToHash("MoveSpeed");
+    static readonly int GaitRate = Animator.StringToHash("GaitRate");
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
         body = transform.Find("Body");
+        if (body != null) standingScale = body.localScale;
+        if (body != null) animator = body.GetComponent<Animator>();
+        Hidden = false;
         if (Camera.main != null) movementCamera = Camera.main.transform;
     }
 
     void Update()
     {
         var game = GoblinDungeon.Instance;
+
+        // Menus (title, shop, end screen) use the same stick and keys, so the goblin waits while one is open.
+        if (game == null || !game.Playing || MenuNav.GameplayBlocked)
+        {
+            NoiseRadius = 0;
+            stepDistance = 0;
+            if (animator != null && animator.isActiveAndEnabled) animator.SetFloat(MoveSpeed, 0);
+            return;
+        }
+
+      
+        Vector2 input = ReadMovementInput();
+        bool running = UpdateMovementMode(input, game.CarryingCrown);
+        Hidden = Sneaking && game.InHidingSpot(transform.position);
+        Move(input, running, Time.deltaTime);
+
+
+        Hidden = Sneaking && game.InHidingSpot(transform.position);
+        if (body != null)
+        {
+            body.localScale = Vector3.Scale(standingScale, new Vector3(1, Sneaking ? .65f : 1, 1));
+            body.gameObject.SetActive(!Hidden);                          //If completely hidden turn the body invisible
+        }
+    }
+
+    Vector2 ReadMovementInput()
+    {
         var keys = Keyboard.current;
-        if (keys == null || game == null || !game.Playing) { NoiseRadius = 0; return; }
-        Vector2 input = new Vector2(
-            (keys.dKey.isPressed || keys.rightArrowKey.isPressed ? 1 : 0) - (keys.aKey.isPressed || keys.leftArrowKey.isPressed ? 1 : 0),
-            (keys.wKey.isPressed || keys.upArrowKey.isPressed ? 1 : 0) - (keys.sKey.isPressed || keys.downArrowKey.isPressed ? 1 : 0));
-        input = Vector2.ClampMagnitude(input, 1);
-        if (keys.cKey.wasPressedThisFrame) crouchToggled = !crouchToggled;
-        Sneaking = crouchToggled || keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed;
-        bool sprintHeld = keys.leftShiftKey.isPressed || keys.rightShiftKey.isPressed;
+        var pad = Gamepad.current;
+        Vector2 input = Vector2.zero;
+        if (keys != null)
+            input = Vector2.ClampMagnitude(new Vector2(
+                (keys.dKey.isPressed || keys.rightArrowKey.isPressed ? 1 : 0) - (keys.aKey.isPressed || keys.leftArrowKey.isPressed ? 1 : 0),
+                (keys.wKey.isPressed || keys.upArrowKey.isPressed ? 1 : 0) - (keys.sKey.isPressed || keys.downArrowKey.isPressed ? 1 : 0)), 1);
+        if (pad != null)
+        {
+            // ReadValue applies the Input System's stick deadzone and preserves analog speed.
+            Vector2 stick = pad.leftStick.ReadValue();
+            if (stick.sqrMagnitude > input.sqrMagnitude) input = stick;
+        }
+        return input;
+    }
+
+    bool UpdateMovementMode(Vector2 input, bool carryingCrown)
+    {
+        var keys = Keyboard.current;
+        var pad = Gamepad.current;
+        // Crouch toggles with C or the controller's Circle / B button (east face button).
+        if ((keys != null && keys.cKey.wasPressedThisFrame) || (pad != null && pad.buttonEast.wasPressedThisFrame))
+            crouchToggled = !crouchToggled;
+        Sneaking = crouchToggled || (keys != null && (keys.leftCtrlKey.isPressed || keys.rightCtrlKey.isPressed));
+        // Sprint while holding Space or the controller's R1 / RB.
+        bool sprintHeld = (keys != null && keys.spaceKey.isPressed) || (pad != null && pad.rightShoulder.isPressed);
         if (exhausted && (!sprintHeld || Stamina >= .3f)) exhausted = false;
         bool running = sprintHeld && !Sneaking && !exhausted && Stamina > 0 && input.sqrMagnitude > 0;
-        Stamina = Mathf.Clamp01(Stamina + (running ? -.27f : .2f) * Time.deltaTime);
+        if(carryingCrown && !DataManager.Data.sprintWhileCarrying)
+        {
+            running = false;
+        }
+        Stamina = Mathf.Clamp01(Stamina + (running ? -StaminaDrain : .2f) * Time.deltaTime);
         if (Stamina <= 0) exhausted = true;
-        // Project camera axes onto the floor: W moves up the screen, D moves right.
-        Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
-        Vector3 forward = movementCamera != null ? movementCamera.forward : Vector3.forward;
-        right.y = forward.y = 0;
-        Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
-        direction = Vector3.ClampMagnitude(direction, 1);
-        float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + game.Boots * .5f : walkSpeed;
-        Vector3 before = transform.position;
-        controller.Move((direction * speed + Vector3.down * 4) * Time.deltaTime);
-        if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 15);
-        Hidden = Sneaking && game.InHidingSpot(transform.position);
-        Vector3 displacement = transform.position - before;
-        displacement.y = 0;
-        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : game.SoftShoes ? 1.5f : 3f;
+        return running;
+    }
+
+    void Move(Vector2 input, bool running, float deltaTime)
+    {
+            // Project camera axes onto the floor: W moves up the screen, D moves right.
+            Vector3 right = movementCamera != null ? movementCamera.right : Vector3.right;
+            Vector3 forward = movementCamera != null ? movementCamera.forward : Vector3.forward;
+            right.y = forward.y = 0;
+            Vector3 direction = (right.normalized * input.x + forward.normalized * input.y);
+            direction = Vector3.ClampMagnitude(direction, 1);
+            float speed = Sneaking ? sneakSpeed : running ? sprintSpeed + DataManager.Data.boots * .5f : walkSpeed;
+            Vector3 before = transform.position;
+            controller.Move((direction * speed + Vector3.down * 4) * deltaTime);
+            if (direction.sqrMagnitude > .01f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), deltaTime * 15);
+            Vector3 displacement = transform.position - before;
+            displacement.y = 0;
+            if (animator != null && animator.isActiveAndEnabled)
+            {
+                float actualSpeed = deltaTime > 0 ? displacement.magnitude / deltaTime : 0;
+                animator.SetFloat(MoveSpeed, actualSpeed, .1f, deltaTime);
+                animator.SetFloat(GaitRate, Mathf.Clamp(actualSpeed / 3.5f, .4f, 1.5f));
+            }
+
+        
+            UpdateFootsteps(displacement, running);
+    }
+
+    void UpdateFootsteps(Vector3 displacement, bool running)
+    {
+        NoiseRadius = displacement.sqrMagnitude < .000001f || Hidden ? 0 : Sneaking ? .5f : running ? 7f : DataManager.Data.softShoes ? 1.5f : 3f;
         if (NoiseRadius > 0)
         {
             stepDistance += displacement.magnitude;
@@ -69,6 +143,8 @@ public class Player : MonoBehaviour
             }
         }
         else stepDistance = 0;
-        if (body != null) body.localScale = new Vector3(1, Sneaking ? .65f : 1, 1);
+
     }
+
 }
+
